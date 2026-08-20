@@ -37,9 +37,14 @@ const SKIP_DIRS = new Set([
 /** @returns {string[]} repo-relative paths */
 function listFiles() {
   try {
+    // `--others --exclude-standard` matters: plain `ls-files` lists only *tracked* files,
+    // so a newly written file is invisible to the gate until after it has been committed.
+    // That is precisely backwards -- the check exists to stop a leak reaching a commit.
+    // Found when three XML namespace hosts in a new src/lib/feeds.ts sailed past a green
+    // run and were only reported once the file was staged.
     const gitArgs = stagedOnly
       ? ['diff', '--cached', '--name-only', '--diff-filter=ACMR']
-      : ['ls-files'];
+      : ['ls-files', '--cached', '--others', '--exclude-standard'];
     const out = execFileSync('git', gitArgs, { cwd: ROOT, encoding: 'utf8' });
     const files = out
       .split('\n')

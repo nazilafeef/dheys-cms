@@ -343,12 +343,17 @@ export function tick(input: TickInput): TickResult {
       continue;
     }
 
+    // The timing reason and the approval reason are both kept. An item that published
+    // without a human decision must say so in the log next to why it was due -- otherwise
+    // the only record of an unapproved publish is a boolean nobody reads.
+    const timing = late
+      ? `Due ${dueAt.toISOString()}, publishing ${formatLateness(lateBySeconds)} late (missed window caught up).`
+      : `Due ${dueAt.toISOString()}, publishing now.`;
+
     decisions.push({
       ...base,
       action: 'publish',
-      reason: late
-        ? `Due ${dueAt.toISOString()}, publishing ${formatLateness(lateBySeconds)} late (missed window caught up).`
-        : `Due ${dueAt.toISOString()}, publishing now.`,
+      reason: approval.autoApproved ? `${timing} ${approval.reason}` : timing,
       ...(approval.autoApproved ? { autoApproved: true } : {}),
     });
   }

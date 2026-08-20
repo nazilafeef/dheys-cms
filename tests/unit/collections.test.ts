@@ -131,8 +131,11 @@ describe('reading time', () => {
     expect(readingTimeMinutes(thaana, 'dv')).toBeGreaterThan(readingTimeMinutes(latin, 'en'));
   });
 
-  it('counts Thaana words at all', () => {
-    expect(readingTimeMinutes('ދިވެހި '.repeat(300), 'dv')).toBeGreaterThan(1);
+  it('counts a Thaana word once, not once per vowel mark', () => {
+    // Thaana fili are combining marks. A `\p{L}\p{N}` word pattern breaks a word at every
+    // vowel, inflating the count -- and the reading time -- by about 2.5x.
+    // 320 words at 160 wpm is 2 minutes; the buggy count of ~960 gives 6.
+    expect(readingTimeMinutes('ދިވެހި '.repeat(320), 'dv')).toBe(2);
   });
 });
 

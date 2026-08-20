@@ -59,6 +59,13 @@ export const ALLOWED_DOMAINS = [
   'validator.w3.org',
   'developer.mozilla.org',
 
+  // XML namespace URIs. These are identifiers fixed by the specifications -- an RSS feed
+  // that changes `purl.org/dc/elements/1.1/` is not an RSS feed any more -- so they are
+  // not substitutable and not optional. Named by src/lib/feeds.ts.
+  'purl.org',
+  'www.sitemaps.org',
+  'www.google.com',
+
   // Toolchain documentation named in docs and code comments.
   'astro.build',
   'docs.astro.build',

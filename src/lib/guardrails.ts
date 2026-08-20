@@ -87,7 +87,15 @@ export function bodyContainsAffiliateOffer(body: string): boolean {
   return AFFILIATE_MARKERS.some((marker) => marker.test(body));
 }
 
-/** Word count that does not treat Markdown syntax or Thaana as words. */
+/**
+ * Word count, excluding Markdown syntax and code.
+ *
+ * `\p{M}` in the continuation class is load-bearing, not tidiness. Thaana vowels (fili)
+ * and Arabic harakat are combining marks rather than letters, so a `\p{L}\p{N}` word
+ * pattern breaks a Dhivehi word at every vowel: `ދިވެހި ބަސް` counts as five words instead
+ * of two. A minimum-words guardrail built on that overcounts Dhivehi by roughly two and a
+ * half times, and would wave through an article at a third of the required length.
+ */
 export function countWords(body: string): number {
   const stripped = body
     .replace(/```[\s\S]*?```/g, ' ')
@@ -95,7 +103,7 @@ export function countWords(body: string): number {
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^[#>\-*+\d.]+\s/gm, ' ')
     .replace(/[*_~]/g, ' ');
-  const matches = stripped.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu);
+  const matches = stripped.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}'’-]*/gu);
   return matches ? matches.length : 0;
 }
 

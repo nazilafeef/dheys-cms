@@ -105,7 +105,10 @@ export function readingTimeMinutes(body: string, locale: LocaleCode): number {
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`]*`/g, ' ')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
-  const words = prose.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu)?.length ?? 0;
+  // `\p{M}` matters here for the same reason it does in `countWords`: without it, every
+  // Thaana vowel mark ends a word and a Dhivehi article's reading time comes out roughly
+  // two and a half times too long.
+  const words = prose.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}'’-]*/gu)?.length ?? 0;
   const wordsPerMinute = LOCALES[locale].script === 'Latn' ? 220 : 160;
   return Math.max(1, Math.round(words / wordsPerMinute));
 }
