@@ -1,0 +1,110 @@
+/*
+ * The Thaana font slot.
+ *
+ * THIS REPOSITORY SHIPS NO FONT BINARY, AND MUST NOT.
+ *
+ * The Thaana typeface intended for this project derives from a font carrying a bare
+ * all-rights-reserved notice with no EULA, and one build variant merges an OFL-licensed
+ * face — which would pull OFL clause 5 across the whole file. The basis for derivative use
+ * is unresolved, so the honest position is to ship nothing and describe the slot instead.
+ * docs/FONTS.md states this in full, including what is still unknown.
+ *
+ * What this file provides is the *slot*: a documented contract an operator can drop their
+ * own licensed files into, with the metric behaviour Thaana needs. Run `pnpm link-font` to
+ * point a local install at files kept outside the repository; it writes a gitignored path
+ * and nothing else.
+ *
+ * ── The metric contract ──────────────────────────────────────────────────────────────
+ *
+ * A Thaana face substituted carelessly does not merely look wrong, it renders wrong:
+ *
+ *  - `unicode-range` MUST include U+0020 and U+00A0. Thaana is a right-to-left script
+ *    interleaved with spaces; if the space glyph is taken from the Latin fallback while
+ *    the letters come from the Thaana face, word spacing changes mid-line and the run
+ *    visibly comes apart. This is the single most common way Thaana webfonts are broken.
+ *
+ *  - `font-synthesis: none`. Thaana has no true italic and browsers synthesise one by
+ *    shearing the glyphs, which distorts the fili (the vowel marks above and below the
+ *    baseline) into something between illegible and wrong. Synthesised bold thickens them
+ *    into each other.
+ *
+ *  - Letter and word spacing are inherited, never overridden. The face's own metrics are
+ *    designed around marks that sit outside the em box; tightening the tracking to match a
+ *    Latin rhythm collides them.
+ *
+ *  - `font-display: swap`, and preload in the document head. Thaana has essentially no
+ *    system fallback on most platforms, so a blocking load means a blank article.
+ */
+
+/*
+ * The variable set here is the whole configuration surface. An operator points it at their
+ * own files — nothing else in the theme needs to change.
+ *
+ *   :root { --thaana-font-url: url('/fonts/their-licensed-face.woff2'); }
+ */
+:root {
+  /*
+   * No default. An unset slot falls through to `--font-thaana-fallback` below, which names
+   * faces a reader may already have. It never silently loads anything from a third party:
+   * a CMS that fetches a font from someone else's CDN has quietly added a tracking vector
+   * and a hard dependency to every page.
+   */
+  --thaana-font-url: none;
+
+  /*
+   * System Thaana faces, in the order they are worth trying. Present on many Maldivian
+   * installs and on essentially no others, which is exactly why the slot exists.
+   */
+  --font-thaana-fallback: 'MV Faseyha', 'MV Boli', 'A_Faruma', 'Faruma', 'MV Iyyu Nala', sans-serif;
+}
+
+/*
+ * The face itself, declared only when the slot is filled.
+ *
+ * `@supports` is doing real work here: with no URL, this block is skipped entirely rather
+ * than emitting an `@font-face` with `src: none` that every browser reports as a failed
+ * font load in the console — and the brief requires zero console errors on any page.
+ */
+@supports not (--thaana-font-url: none) {
+  @font-face {
+    font-family: 'Dheys Thaana';
+    src: var(--thaana-font-url) format('woff2');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+
+    /*
+     * Thaana block, plus the two space characters. Dropping U+0020/U+00A0 is what splits a
+     * line between two faces.
+     */
+    unicode-range: U+0780-07BF, U+FDF2, U+0020, U+00A0, U+060C, U+061B, U+061F;
+  }
+}
+
+/*
+ * Applied by language rather than by class, so content picks the face up automatically
+ * however it got onto the page — an editor's paste, an agent's output, a migration.
+ */
+:lang(dv),
+[lang='dv'] {
+  font-family: 'Dheys Thaana', var(--font-thaana-fallback);
+  font-synthesis: none;
+
+  /* Deliberately not set: letter-spacing, word-spacing. The face's own metrics stand. */
+}
+
+/*
+ * Thaana sets a shorter comfortable line than Latin: its glyphs are wider and carry marks
+ * above and below the baseline, so the same character count reads as a denser block.
+ */
+:lang(dv) .prose,
+[lang='dv'] .prose {
+  max-inline-size: var(--measure-thaana);
+}
+
+/* Italic is never synthesised for Thaana; emphasis is carried by weight instead. */
+:lang(dv) em,
+[lang='dv'] em {
+  font-style: normal;
+  font-weight: var(--weight-bold);
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/nazilafeef/dheys-cms/security/advisories/new
+    about: Report privately, not as a public issue.
+  - name: Documentation
+    url: https://github.com/nazilafeef/dheys-cms/tree/main/docs
+    about: Installation, configuration, the registry, guardrails, i18n and more.

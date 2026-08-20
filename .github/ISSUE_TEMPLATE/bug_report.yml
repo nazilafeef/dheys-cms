@@ -1,0 +1,69 @@
+name: Bug report
+description: Something behaves differently from how it is documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is a security issue, please do not file it here — open a
+        [security advisory](https://github.com/nazilafeef/dheys-cms/security/advisories/new)
+        instead.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Smallest sequence that shows it. A failing test is ideal.
+      placeholder: |
+        1. pnpm install
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: gate
+    attributes:
+      label: Output of `pnpm gate`
+      description: Paste it, even if it passes — knowing it passes is useful.
+      render: shell
+
+  - type: input
+    id: versions
+    attributes:
+      label: Node, pnpm and OS
+      placeholder: Node 22.11.0, pnpm 10.15.0, Windows 11
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part
+      options:
+        - Front end / rendering
+        - Admin
+        - Scheduler / automation
+        - Agents / providers
+        - Guardrails
+        - Connector
+        - i18n / RTL
+        - Build / CI
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: locale
+    attributes:
+      label: Does it involve a right-to-left locale?
+      options:
+        - label: Yes, Dhivehi or Arabic is involved

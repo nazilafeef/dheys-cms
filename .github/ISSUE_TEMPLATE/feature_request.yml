@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest something this should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What are you trying to do that is hard right now? Describe the situation rather
+        than the solution — it is often solvable in a way nobody had thought of.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have already tried or ruled out
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Does it fit the constraints?
+      description: >
+        This project has hard limits. A proposal that breaks one is not automatically
+        rejected, but it needs an argument.
+      options:
+        - label: No database and no required backend
+        - label: No paid service in the default path
+        - label: No AI key reachable from a browser
+        - label: No telemetry
+        - label: Keeps an article page under 30 KB of JavaScript
+        - label: Works right-to-left

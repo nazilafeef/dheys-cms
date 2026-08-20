@@ -34,7 +34,18 @@ export default defineConfig({
   },
   vite: {
     build: {
-      chunkSizeWarningLimit: 200,
+      /*
+       * Sized for the admin island, which is the only large chunk this project produces
+       * and is loaded on `/admin` alone. It carries Preact, Zod, the Markdown renderer and
+       * the whole editorial library, and ~270 KB is what that honestly costs.
+       *
+       * This is not the article-page JavaScript budget. That budget is 30 KB, it is a
+       * different number about a different bundle, and it is enforced where it can
+       * actually be measured -- `tests/e2e/public-site.spec.ts` weighs every script an
+       * article page loads and fails if the total exceeds it. A warning threshold here
+       * would not catch a regression there, because an article page loads none of this.
+       */
+      chunkSizeWarningLimit: 320,
     },
   },
 });

@@ -93,6 +93,33 @@ describe('clean-room gate — where bare hostnames are read', () => {
     expect(scanText(text, '.github/workflows/x.yml').map((v) => v.match)).toEqual([host]);
   });
 
+  it('does not read dotted identifiers inside a fenced code block as hostnames', () => {
+    // `.id` is Indonesia and `.in` is India. Documentation is full of both.
+    const text = [
+      'Load it like this:',
+      '',
+      '```ts',
+      'const item = parseOrThrow(entry.id, schema, entry.data);',
+      'const cost = payload.usage.in + payload.usage.out;',
+      '```',
+      '',
+      'That is all.',
+    ].join('\n');
+    expect(scanText(text, 'docs/custom-content-types.md')).toEqual([]);
+  });
+
+  it('still reads a real URL inside a fenced code block', () => {
+    const host = plant('operator', '-site', '.com');
+    const text = ['```bash', `curl https://${host}/feed.xml`, '```'].join('\n');
+    expect(scanText(text, 'docs/x.md').map((v) => v.match)).toEqual([host]);
+  });
+
+  it('resumes scanning prose after a fenced block closes', () => {
+    const host = plant('an-operator', '-domain', '.co');
+    const text = ['```', 'entry.id', '```', '', `We publish at ${host} now.`].join('\n');
+    expect(scanText(text, 'docs/x.md').map((v) => v.match)).toEqual([host]);
+  });
+
   it('does not read i18n message keys in JSON as hostnames', () => {
     const text = [
       '{',

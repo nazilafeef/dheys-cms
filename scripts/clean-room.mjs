@@ -56,6 +56,7 @@ export const ALLOWED_DOMAINS = [
   'contributor-covenant.org',
   'www.contributor-covenant.org',
   'jsonfeed.org',
+  'json-schema.org',
   'validator.w3.org',
   'developer.mozilla.org',
 
@@ -489,9 +490,24 @@ export function scanText(text, file) {
   const isProse = PROSE_EXTENSIONS.has(extension);
   const isJson = extension === '.json';
 
+  /*
+   * Fenced code blocks in prose are code, not prose.
+   *
+   * Inline spans were already stripped, but a fenced block is a multi-line construct that a
+   * per-line strip cannot see. Documentation is full of them, and they are full of dotted
+   * identifiers -- `entry.id`, `sites.0.id`, `payload.usage.in` -- whose suffixes are real
+   * public suffixes (.id Indonesia, .in India). The anchored rule still runs over every
+   * line untouched, so a real URL inside a code block is still caught.
+   */
+  let inFence = false;
+
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
     const seenOnLine = new Set();
+
+    if (isProse && /^\s*(?:```|~~~)/.test(line)) {
+      inFence = !inFence;
+    }
 
     /** @param {string} host */
     const reportDomain = (host) => {
@@ -517,7 +533,11 @@ export function scanText(text, file) {
     }
 
     // Rule 1b -- bare hostnames, where a bare hostname is plausible.
-    const bareSources = isJson ? jsonValueLiterals(line) : isProse ? [stripInlineCode(line)] : [];
+    const bareSources = isJson
+      ? jsonValueLiterals(line)
+      : isProse && !inFence
+        ? [stripInlineCode(line)]
+        : [];
     for (const source of bareSources) {
       for (const match of source.matchAll(BARE_DOMAIN_RE)) {
         const host = match[1];

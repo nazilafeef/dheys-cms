@@ -17,6 +17,9 @@
 @import '../../themes/bare/tokens.css';
 @import '../../themes/dheys/tokens.css';
 
+/* The Thaana font slot. Ships no binary; see docs/FONTS.md. */
+@import '../../themes/dheys/fonts.css';
+
 /* ------------------------------------------------------------------ *
  * Reset
  * ------------------------------------------------------------------ */
