@@ -1,0 +1,48 @@
+---
+import { translator, type LocaleCode } from '@lib/i18n';
+import type { Post } from '@lib/schemas';
+
+/**
+ * Affiliate disclosure.
+ *
+ * Rendered automatically whenever the item declares an affiliate offer. There is no prop
+ * to suppress it and no theme switch to hide it: the schema will not let such an item
+ * publish without a disclosure, and this is the half that puts it in front of the reader.
+ *
+ * It renders BEFORE the article body, not after. A disclosure below the fold, after the
+ * recommendation has been read, is a disclosure in name only.
+ */
+
+export interface Props {
+  item: Post;
+  locale: LocaleCode;
+}
+
+const { item, locale } = Astro.props;
+const t = translator(locale);
+
+// `disclosure` is guaranteed present by the schema when `hasOffers` is true; the fallback
+// is here so a hand-edited file can never render an empty box.
+const text = item.affiliate.disclosure ?? t('affiliate.disclosure');
+---
+
+{
+  item.affiliate.hasOffers && (
+    <aside class="affiliate" aria-label={t('affiliate.disclosureHeading')}>
+      <p>{text}</p>
+    </aside>
+  )
+}
+
+<style>
+  .affiliate {
+    margin-block: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid var(--warning);
+    background-color: var(--surface);
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+    color: var(--ink-600);
+  }
+</style>

@@ -1,0 +1,75 @@
+---
+import { translator, type LocaleCode } from '@lib/i18n';
+
+export interface Props {
+  locale: LocaleCode;
+  current: number;
+  total: number;
+  /** Builds the href for a page number. */
+  hrefFor: (page: number) => string;
+}
+
+const { locale, current, total, hrefFor } = Astro.props;
+const t = translator(locale);
+---
+
+{
+  total > 1 && (
+    <nav class="pagination" aria-label={t('pagination.page', { current, total })}>
+      <div class="pagination__side">
+        {current > 1 && (
+          <a rel="prev" href={hrefFor(current - 1)}>
+            <span class="icon-directional" aria-hidden="true">
+              ←{' '}
+            </span>
+            {t('pagination.previous')}
+          </a>
+        )}
+      </div>
+
+      <p class="meta">{t('pagination.page', { current, total })}</p>
+
+      <div class="pagination__side pagination__side--end">
+        {current < total && (
+          <a rel="next" href={hrefFor(current + 1)}>
+            {t('pagination.next')}
+            <span class="icon-directional" aria-hidden="true">
+              {' '}
+              →
+            </span>
+          </a>
+        )}
+      </div>
+    </nav>
+  )
+}
+
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-block-start: var(--space-10);
+    padding-block-start: var(--space-5);
+    border-block-start: var(--hairline) solid var(--rule);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .pagination__side {
+    flex: 1;
+  }
+
+  .pagination__side--end {
+    text-align: end;
+  }
+
+  .pagination a {
+    text-decoration: none;
+  }
+
+  .pagination a:hover {
+    text-decoration: underline;
+  }
+</style>

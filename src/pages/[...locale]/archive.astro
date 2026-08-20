@@ -1,0 +1,82 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import PostCard from '@components/PostCard.astro';
+import { publishedPosts, allCategories } from '@lib/content';
+import { LOCALE_CODES, translator, type LocaleCode } from '@lib/i18n';
+import { localeParam } from '@lib/routes';
+
+export async function getStaticPaths() {
+  return LOCALE_CODES.map((locale) => ({
+    params: { locale: localeParam(locale) },
+    props: { locale },
+  }));
+}
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+
+const posts = await publishedPosts({ locale });
+const categories = await allCategories();
+const categoryLabel = (slug: string): string =>
+  categories.find((category) => category.slug === slug)?.name ?? slug;
+
+const everything = await publishedPosts({});
+const availableLocales = LOCALE_CODES.filter((code) =>
+  everything.some((post) => post.item.locale === code),
+);
+
+/** Grouped by year, because an archive without a shape is just a long list. */
+const byYear = new Map<number, typeof posts>();
+for (const post of posts) {
+  const year = post.item.publishedDate.getUTCFullYear();
+  byYear.set(year, [...(byYear.get(year) ?? []), post]);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+---
+
+<BaseLayout
+  title={`${t('archive.title')} — ${t('site.title')}`}
+  description={t('site.tagline')}
+  path="/archive"
+  locale={locale}
+  availableLocales={availableLocales}
+>
+  <div class="wrap archive">
+    <h1>{t('archive.title')}</h1>
+
+    {
+      posts.length === 0 ? (
+        <p class="notice">{t('archive.empty')}</p>
+      ) : (
+        years.map((year) => (
+          <section class="archive__year">
+            <h2>{year}</h2>
+            {(byYear.get(year) ?? []).map((post) => (
+              <PostCard
+                item={post.item}
+                body={post.body}
+                locale={locale}
+                categoryLabel={categoryLabel(post.item.category)}
+              />
+            ))}
+          </section>
+        ))
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .archive {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .archive__year > * + * {
+    margin-block-start: var(--space-6);
+  }
+</style>

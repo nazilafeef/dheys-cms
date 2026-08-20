@@ -105,6 +105,76 @@ const LATIN_FOLDING: ReadonlyArray<readonly [RegExp, string]> = [
   [/[ð]/g, 'dh'],
 ];
 
+/**
+ * Arabic transliteration.
+ *
+ * Arabic is a shipped locale, and without this an Arabic byline or headline slugs to the
+ * empty string and falls back to `untitled` -- which collides the moment there are two of
+ * them, and a route collision silently drops a page. Found exactly that way: two Arabic
+ * authors both produced `/ar/author/untitled`.
+ *
+ * This is a practical romanisation for URLs, not a scholarly one: no macrons, no dots
+ * under, nothing that needs a diacritic to be readable in an address bar.
+ */
+const ARABIC_LETTERS: Readonly<Record<string, string>> = Object.freeze({
+  ا: 'a',
+  أ: 'a',
+  إ: 'i',
+  آ: 'aa',
+  ب: 'b',
+  ت: 't',
+  ة: 'h',
+  ث: 'th',
+  ج: 'j',
+  ح: 'h',
+  خ: 'kh',
+  د: 'd',
+  ذ: 'dh',
+  ر: 'r',
+  ز: 'z',
+  س: 's',
+  ش: 'sh',
+  ص: 's',
+  ض: 'd',
+  ط: 't',
+  ظ: 'z',
+  ع: 'a',
+  غ: 'gh',
+  ف: 'f',
+  ق: 'q',
+  ك: 'k',
+  ل: 'l',
+  م: 'm',
+  ن: 'n',
+  ه: 'h',
+  و: 'w',
+  ي: 'y',
+  ى: 'a',
+  ء: '',
+  ؤ: 'u',
+  ئ: 'i',
+  ٱ: 'a',
+});
+
+/** Harakat and other combining marks, which carry no information in a URL. */
+const ARABIC_DIACRITICS = /[ً-ْٓ-ٰٟ]/g;
+
+const ARABIC_CHAR = /[ء-ي]/;
+
+export function containsArabicChar(value: string): boolean {
+  return ARABIC_CHAR.test(value);
+}
+
+/** Transliterate Arabic to Latin. Non-Arabic characters pass through untouched. */
+export function transliterateArabic(input: string): string {
+  let output = '';
+  for (const char of input.replace(ARABIC_DIACRITICS, '')) {
+    const mapped = ARABIC_LETTERS[char];
+    output += mapped === undefined ? char : mapped;
+  }
+  return output;
+}
+
 const THAANA_CHAR = /[ހ-޿]/;
 
 /**
@@ -158,6 +228,7 @@ export function slugify(input: string, fallback = 'untitled'): string {
 
   let value = input.normalize('NFC');
   if (containsThaanaChar(value)) value = transliterateThaana(value);
+  if (containsArabicChar(value)) value = transliterateArabic(value);
 
   value = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
   value = value.toLowerCase();

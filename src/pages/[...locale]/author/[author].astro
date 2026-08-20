@@ -1,0 +1,102 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import PostCard from '@components/PostCard.astro';
+import { publishedPosts, allPosts, allAuthors, allCategories } from '@lib/content';
+import { translator, type LocaleCode } from '@lib/i18n';
+import { localeParam } from '@lib/routes';
+import { byAuthor } from '@lib/collections';
+import { slugify } from '@lib/slug';
+
+/**
+ * Author pages.
+ *
+ * Bylines are free text, and a Dhivehi byline is Thaana, so the URL segment is the
+ * transliterated slug rather than the name itself. `slugify` is the same function the
+ * editor uses when generating a post slug, so an author page URL is readable and stable
+ * whichever script the name is written in.
+ */
+export async function getStaticPaths() {
+  const posts = await allPosts();
+  const seen = new Set<string>();
+  const paths: Array<{
+    params: { locale: string | undefined; author: string };
+    props: { locale: LocaleCode; author: string };
+  }> = [];
+
+  for (const { item } of posts) {
+    if (item.draft || item.state === 'rejected') continue;
+    const key = `${item.locale}/${item.author}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paths.push({
+      params: { locale: localeParam(item.locale), author: slugify(item.author) },
+      props: { locale: item.locale, author: item.author },
+    });
+  }
+
+  return paths;
+}
+
+interface Props {
+  locale: LocaleCode;
+  author: string;
+}
+
+const { locale, author } = Astro.props;
+const t = translator(locale);
+
+const authors = await allAuthors();
+const record = authors.find((entry) => entry.name === author);
+
+const categories = await allCategories();
+const categoryLabel = (slug: string): string =>
+  categories.find((category) => category.slug === slug)?.name ?? slug;
+
+const posts = byAuthor(await publishedPosts({ locale }), author);
+---
+
+<BaseLayout
+  title={`${t('archive.byAuthor', { name: author })} — ${t('site.title')}`}
+  description={record?.bio ?? t('archive.byAuthor', { name: author })}
+  path={`/author/${slugify(author)}`}
+  locale={locale}
+>
+  <div class="wrap listing">
+    <p class="eyebrow">{t('admin.common.author')}</p>
+    <h1>{author}</h1>
+    {record?.bio && <p class="listing__lede">{record.bio}</p>}
+    {record?.isAgent && <p class="notice">{t('ai.generatedLabel')}</p>}
+
+    {
+      posts.length === 0 ? (
+        <p class="notice">{t('archive.empty')}</p>
+      ) : (
+        posts.map((post) => (
+          <PostCard
+            item={post.item}
+            body={post.body}
+            locale={locale}
+            categoryLabel={categoryLabel(post.item.category)}
+          />
+        ))
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .listing {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .listing__lede {
+    margin-block: var(--space-3) var(--space-8);
+    color: var(--ink-600);
+    font-size: var(--size-lg);
+  }
+
+  .listing > article {
+    margin-block-start: var(--space-6);
+  }
+</style>

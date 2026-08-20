@@ -1,0 +1,138 @@
+---
+import '../styles/global.css';
+import SeoHead from '@components/SeoHead.astro';
+import SiteHeader from '@components/SiteHeader.astro';
+import SiteFooter from '@components/SiteFooter.astro';
+import { LOCALES, translator, type LocaleCode } from '@lib/i18n';
+import { withBase } from '@lib/paths';
+
+export interface Props {
+  title: string;
+  description: string;
+  path: string;
+  locale: LocaleCode;
+  availableLocales?: readonly LocaleCode[];
+  type?: 'website' | 'article';
+  publishedTime?: Date | undefined;
+  modifiedTime?: Date | undefined;
+  author?: string | undefined;
+  section?: string | undefined;
+  tags?: readonly string[];
+  noindex?: boolean;
+  image?: string | undefined;
+  imageAlt?: string | undefined;
+  jsonLd?: readonly Record<string, unknown>[];
+  /**
+   * Per-locale URLs for this same page. Required wherever translations do not share a
+   * slug, which is every article. Feeds hreflang and the language switcher alike.
+   */
+  localeUrls?: Partial<Record<LocaleCode, string>> | undefined;
+  /** Wide pages (archive grids) opt out of the reading measure. */
+  wide?: boolean;
+}
+
+const {
+  title,
+  description,
+  path,
+  locale,
+  availableLocales = [locale],
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  author,
+  section,
+  tags = [],
+  noindex = false,
+  image,
+  imageAlt,
+  jsonLd = [],
+  localeUrls,
+} = Astro.props;
+
+const definition = LOCALES[locale];
+const t = translator(locale);
+
+/**
+ * Which theme is compiled in. `bare` is the default for a fresh install, exactly as the
+ * brief specifies; this project's own deployment sets PUBLIC_THEME=dheys so the live site
+ * shows the branded one. Both themes' tokens ship in the same stylesheet and are selected
+ * by this attribute, which also lets an operator switch without a rebuild.
+ */
+const themeName = import.meta.env.PUBLIC_THEME === 'dheys' ? 'dheys' : 'bare';
+const base = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang={locale} dir={definition.dir} data-theme-name={themeName}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {
+      /*
+      `BASE_URL` is `/dheys-cms` with no trailing slash, so string-concatenating a filename
+      onto it yields `/dheys-cmsfavicon.svg`. Every URL goes through `withBase` for exactly
+      this reason -- `pnpm check:links` caught this one.
+    */
+    }
+    <link rel="icon" href={withBase('/favicon.svg', base)} type="image/svg+xml" />
+
+    <SeoHead
+      title={title}
+      description={description}
+      path={path}
+      locale={locale}
+      availableLocales={availableLocales}
+      type={type}
+      publishedTime={publishedTime}
+      modifiedTime={modifiedTime}
+      author={author}
+      section={section}
+      tags={tags}
+      noindex={noindex}
+      image={image}
+      imageAlt={imageAlt}
+      jsonLd={jsonLd}
+      localeUrls={localeUrls}
+    />
+
+    {
+      /*
+      Colour-scheme resolution, inline and before first paint.
+
+      This has to be a blocking inline script. Deferring it -- or moving it to an external
+      file -- means the document paints in the default scheme and then repaints in the
+      chosen one, which is the flash of wrong theme every reader in a dark room notices.
+      It is ~200 bytes and it is the only render-blocking script on the site.
+    */
+    }
+    <script is:inline>
+      (function () {
+        try {
+          const stored = localStorage.getItem('dheys-theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+        } catch {
+          /* Private mode, or storage disabled. The media query still applies. */
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{t('site.skipToContent')}</a>
+    <SiteHeader
+      locale={locale}
+      availableLocales={availableLocales}
+      currentPath={path}
+      localeUrls={localeUrls}
+    />
+
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <SiteFooter locale={locale} />
+  </body>
+</html>

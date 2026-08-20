@@ -1,0 +1,52 @@
+---
+/**
+ * Ad slot.
+ *
+ * An unfilled slot renders an empty element and makes no network request of any kind:
+ * no script, no iframe, no tracking pixel, no preconnect. That is the whole contract.
+ *
+ * Most CMS ad slots load the network's tag unconditionally and let the network decide
+ * whether to paint anything. On a page with no ad sold that costs the reader a
+ * third-party connection, a Lighthouse penalty and a layout shift, in exchange for
+ * nothing. Here, `creative` being absent means the slot is inert.
+ *
+ * When a slot IS filled, `block-size` is reserved up front so nothing below it moves --
+ * unreserved ad space is the single largest source of cumulative layout shift on most
+ * editorial sites.
+ */
+
+export interface Props {
+  /** Slot name, for the operator's own reporting. */
+  name: string;
+  /** Rendered markup for a sold slot. Absent means the slot stays inert. */
+  creative?: string | undefined;
+  /** Reserved height in pixels, so filling the slot shifts nothing. */
+  height?: number;
+  label?: string;
+}
+
+const { name, creative, height = 250, label } = Astro.props;
+const filled = typeof creative === 'string' && creative.trim() !== '';
+---
+
+<div
+  class="ad-slot"
+  data-slot={name}
+  data-filled={filled ? 'true' : 'false'}
+  style={filled ? `min-block-size:${height}px` : undefined}
+  aria-hidden={filled ? undefined : 'true'}
+>
+  {filled && label && <p class="ad-slot__label">{label}</p>}
+  {filled && <Fragment set:html={creative} />}
+</div>
+
+<style>
+  .ad-slot__label {
+    font-family: var(--font-ui);
+    font-size: var(--size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+    margin-block-end: var(--space-2);
+  }
+</style>

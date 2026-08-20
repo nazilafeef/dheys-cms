@@ -75,6 +75,14 @@ export const ALLOWED_DOMAINS = [
   'pagefind.app',
   'developer.chrome.com',
 
+  // Social share endpoints, named by src/components/ShareLinks.astro. These are plain
+  // anchors to each network's public share URL -- no SDK, no widget, and no request until
+  // a reader clicks. The product cannot offer sharing without naming them.
+  'twitter.com',
+  'x.com',
+  'www.facebook.com',
+  'www.linkedin.com',
+
   // Provider and host API endpoints the adapters actually call.
   'api.anthropic.com',
   // The Co-Authored-By trailer on every commit in this repository. The history is

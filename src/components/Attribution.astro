@@ -1,0 +1,115 @@
+---
+import { translator, formatDate, type LocaleCode } from '@lib/i18n';
+import type { Post } from '@lib/schemas';
+
+/**
+ * Attribution for AI-authored content.
+ *
+ * Rendered from the provenance stored in frontmatter, never typed by hand, and never
+ * omitted for an item whose `sourceType` says a model wrote it. A theme may restyle this
+ * or move it; the CMS always produces it.
+ *
+ * The sources list is the part that does the real work. "Written by a model" is a label;
+ * a list of links a reader can follow is a claim they can check.
+ */
+
+export interface Props {
+  item: Post;
+  locale: LocaleCode;
+}
+
+const { item, locale } = Astro.props;
+const t = translator(locale);
+
+const isAi = item.sourceType === 'ai' || item.sourceType === 'ai-assisted';
+const provenance = item.provenance;
+const show = isAi && provenance !== undefined;
+
+const line = provenance
+  ? provenance.reviewedBy
+    ? t('ai.attribution', { model: provenance.model, reviewer: provenance.reviewedBy })
+    : t('ai.attributionUnreviewed', { model: provenance.model })
+  : '';
+---
+
+{
+  show && provenance && (
+    <aside class="attribution" aria-labelledby="attribution-heading">
+      <h2 id="attribution-heading" class="attribution__heading">
+        {t('ai.disclosureHeading')}
+      </h2>
+
+      <p class="attribution__line">{line}</p>
+
+      <p class="meta">
+        {t('ai.promptVersion', { version: provenance.promptVersion })}
+        <span aria-hidden="true"> · </span>
+        <span>{formatDate(provenance.completedAt, locale)}</span>
+      </p>
+
+      {provenance.sources.length > 0 && (
+        <>
+          <h3 class="attribution__sources-heading">{t('ai.sources')}</h3>
+          <ul class="attribution__sources">
+            {provenance.sources.map((source) => (
+              <li>
+                <a href={source.url} rel="nofollow noopener">
+                  {source.title}
+                </a>
+                {source.unsupportedClaims && source.unsupportedClaims.length > 0 && (
+                  <ul class="attribution__unsupported">
+                    {source.unsupportedClaims.map((claim) => (
+                      <li>{claim}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </aside>
+  )
+}
+
+<style>
+  .attribution {
+    margin-block-start: var(--space-10);
+    padding: var(--space-5);
+    background-color: var(--surface);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+  }
+
+  .attribution__heading {
+    margin-block: 0 var(--space-2);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+  }
+
+  .attribution__line {
+    font-size: var(--size-md);
+  }
+
+  .attribution__sources-heading {
+    margin-block: var(--space-4) var(--space-2);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .attribution__sources {
+    margin: 0;
+    padding-inline-start: var(--space-5);
+    font-size: var(--size-sm);
+  }
+
+  .attribution__unsupported {
+    margin-block-start: var(--space-1);
+    color: var(--danger);
+    font-size: var(--size-xs);
+  }
+</style>

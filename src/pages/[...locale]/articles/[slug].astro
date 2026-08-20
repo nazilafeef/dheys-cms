@@ -1,0 +1,312 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Attribution from '@components/Attribution.astro';
+import AffiliateDisclosure from '@components/AffiliateDisclosure.astro';
+import TableOfContents from '@components/TableOfContents.astro';
+import ShareLinks from '@components/ShareLinks.astro';
+import AdSlot from '@components/AdSlot.astro';
+import PostCard from '@components/PostCard.astro';
+import { publishedPosts, allCategories, translationsOf, allPosts } from '@lib/content';
+import { formatDate, isoDate, translator, LOCALE_CODES, type LocaleCode } from '@lib/i18n';
+import { localeParam, routes } from '@lib/routes';
+import { readingTimeMinutes, relatedPosts, neighbours } from '@lib/collections';
+import { canonicalUrl } from '@lib/paths';
+import { slugify } from '@lib/slug';
+import type { LoadedPost } from '@lib/content';
+
+export async function getStaticPaths() {
+  const posts = await allPosts();
+  return posts
+    .filter(({ item }) => !item.draft && item.state !== 'rejected')
+    .map((post) => ({
+      params: { locale: localeParam(post.item.locale), slug: post.item.slug },
+      props: { post },
+    }));
+}
+
+interface Props {
+  post: LoadedPost;
+}
+
+const { post } = Astro.props;
+const { item, body, entry } = post;
+const locale = item.locale;
+
+const base = import.meta.env.BASE_URL;
+const site = Astro.site?.href ?? 'http://localhost:4321';
+const t = translator(locale);
+const ctx = { locale, base };
+
+const { Content } = await render(entry);
+
+const categories = await allCategories();
+const categoryLabel =
+  categories.find((category) => category.slug === item.category)?.name ?? item.category;
+
+const localePosts = await publishedPosts({ locale });
+const related = relatedPosts(post, localePosts, 3);
+const { previous, next } = neighbours(localePosts, item.slug);
+
+const translations = await translationsOf(post);
+const availableLocales = LOCALE_CODES.filter((code) => translations.has(code));
+
+/**
+ * Each translation has its own slug -- the Arabic version of "The tide gauge at the old
+ * harbour" is mikyas-almad-fi-almina-alqadim -- so the switcher and hreflang need real
+ * per-locale URLs rather than the current path with a prefix bolted on.
+ */
+const localeUrls: Partial<Record<LocaleCode, string>> = {};
+for (const [code, translated] of translations) {
+  localeUrls[code] = routes.article({ locale: code, base }, translated.item.slug);
+}
+
+const minutes = readingTimeMinutes(body, locale);
+const path = `/articles/${item.slug}`;
+const absoluteUrl = canonicalUrl(routes.article(ctx, item.slug), site, '/');
+
+/**
+ * JSON-LD. `NewsArticle` rather than `Article` because this ships for newsrooms, and a
+ * `BreadcrumbList` so the category shows in search results rather than a bare URL.
+ */
+const jsonLd: Record<string, unknown>[] = [
+  {
+    '@type': 'NewsArticle',
+    headline: item.title,
+    description: item.excerpt,
+    datePublished: isoDate(item.publishedDate),
+    ...(item.updatedDate ? { dateModified: isoDate(item.updatedDate) } : {}),
+    inLanguage: locale,
+    articleSection: categoryLabel,
+    keywords: item.tags.join(', '),
+    url: absoluteUrl,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl },
+    author: item.provenance
+      ? {
+          // A model is not a Person. Saying so in the structured data matters as much as
+          // saying it on the page.
+          '@type': 'Organization',
+          name: `${item.provenance.model} (via ${item.provenance.provider})`,
+        }
+      : { '@type': 'Person', name: item.author },
+    ...(item.provenance?.reviewedBy
+      ? { editor: { '@type': 'Person', name: item.provenance.reviewedBy } }
+      : {}),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: t('nav.home'),
+        item: canonicalUrl(routes.home(ctx), site, '/'),
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: categoryLabel,
+        item: canonicalUrl(routes.category(ctx, item.category), site, '/'),
+      },
+      { '@type': 'ListItem', position: 3, name: item.title },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={item.seo.title ?? item.title}
+  description={item.seo.description ?? item.excerpt}
+  path={path}
+  locale={locale}
+  availableLocales={availableLocales}
+  type="article"
+  publishedTime={item.publishedDate}
+  modifiedTime={item.updatedDate}
+  author={item.author}
+  section={categoryLabel}
+  tags={item.tags}
+  noindex={item.seo.noindex}
+  image={item.seo.ogImage ?? item.heroImage}
+  imageAlt={item.seo.ogImageAlt ?? item.heroImageAlt}
+  jsonLd={jsonLd}
+  localeUrls={localeUrls}
+>
+  <article class="wrap article">
+    <header class="article__header">
+      <p class="eyebrow">
+        <a href={routes.category(ctx, item.category)}>{categoryLabel}</a>
+      </p>
+
+      <h1>{item.title}</h1>
+
+      <p class="article__excerpt">{item.excerpt}</p>
+
+      <p class="meta article__meta">
+        <a href={routes.author(ctx, slugify(item.author))}>
+          {t('article.by', { author: item.author })}
+        </a>
+        <span aria-hidden="true">·</span>
+        <time datetime={isoDate(item.publishedDate)}>{formatDate(item.publishedDate, locale)}</time>
+        {
+          item.updatedDate && (
+            <>
+              <span aria-hidden="true">·</span>
+              <time datetime={isoDate(item.updatedDate)}>
+                {t('article.updatedOn', { date: formatDate(item.updatedDate, locale) })}
+              </time>
+            </>
+          )
+        }
+        <span aria-hidden="true">·</span>
+        <span>{t('article.readingTime', { minutes })}</span>
+      </p>
+
+      {
+        item.series && (
+          <p class="meta article__series">
+            {t('article.series', { series: item.series })}
+            {item.seriesIndex && ` · ${t('article.partOf', { index: item.seriesIndex, total: 2 })}`}
+          </p>
+        )
+      }
+    </header>
+
+    <AffiliateDisclosure item={item} locale={locale} />
+
+    <TableOfContents body={body} locale={locale} />
+
+    <div class="prose article__body">
+      <Content />
+    </div>
+
+    <AdSlot name="article-end" />
+
+    <Attribution item={item} locale={locale} />
+
+    <ShareLinks url={absoluteUrl} title={item.title} locale={locale} />
+
+    {
+      item.tags.length > 0 && (
+        <p class="meta article__tags">
+          {t('article.tags')}: {item.tags.join(', ')}
+        </p>
+      )
+    }
+
+    {
+      (previous || next) && (
+        <nav class="article__neighbours" aria-label={t('article.related')}>
+          <div>
+            {previous && (
+              <a href={routes.article(ctx, previous.item.slug)}>
+                <span class="meta">{t('article.previous')}</span>
+                <span class="article__neighbour-title">{previous.item.title}</span>
+              </a>
+            )}
+          </div>
+          <div class="article__neighbour--end">
+            {next && (
+              <a href={routes.article(ctx, next.item.slug)}>
+                <span class="meta">{t('article.next')}</span>
+                <span class="article__neighbour-title">{next.item.title}</span>
+              </a>
+            )}
+          </div>
+        </nav>
+      )
+    }
+
+    {
+      related.length > 0 && (
+        <section class="article__related">
+          <h2>{t('article.related')}</h2>
+          {related.map((other) => (
+            <PostCard item={other.item} body={other.body} locale={locale} />
+          ))}
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .article__header {
+    padding-block-end: var(--space-6);
+    border-block-end: var(--hairline) solid var(--rule);
+  }
+
+  .article__excerpt {
+    margin-block-start: var(--space-3);
+    color: var(--ink-600);
+    font-size: var(--size-lg);
+  }
+
+  .article__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+  }
+
+  .article__meta a {
+    color: inherit;
+  }
+
+  .article__series {
+    margin-block-start: var(--space-2);
+  }
+
+  .article__body {
+    margin-block-start: var(--space-8);
+  }
+
+  .article__tags {
+    margin-block-start: var(--space-6);
+  }
+
+  .article__neighbours {
+    display: flex;
+    gap: var(--space-5);
+    margin-block-start: var(--space-10);
+    padding-block-start: var(--space-5);
+    border-block-start: var(--hairline) solid var(--rule);
+  }
+
+  .article__neighbours > div {
+    flex: 1;
+  }
+
+  .article__neighbour--end {
+    text-align: end;
+  }
+
+  .article__neighbours a {
+    display: block;
+    text-decoration: none;
+  }
+
+  .article__neighbour-title {
+    display: block;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+  }
+
+  .article__neighbours a:hover .article__neighbour-title {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  .article__related {
+    margin-block-start: var(--space-12);
+  }
+
+  .article__related > * + * {
+    margin-block-start: var(--space-6);
+  }
+</style>

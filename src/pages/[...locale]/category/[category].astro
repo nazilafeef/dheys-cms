@@ -1,0 +1,85 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import PostCard from '@components/PostCard.astro';
+import { publishedPosts, allPosts, allCategories } from '@lib/content';
+import { translator, type LocaleCode } from '@lib/i18n';
+import { localeParam } from '@lib/routes';
+import { byCategory } from '@lib/collections';
+import type { LoadedPost } from '@lib/content';
+
+export async function getStaticPaths() {
+  const posts = await allPosts();
+  const seen = new Set<string>();
+  const paths: Array<{
+    params: { locale: string | undefined; category: string };
+    props: { locale: LocaleCode; category: string };
+  }> = [];
+
+  for (const { item } of posts) {
+    if (item.draft || item.state === 'rejected') continue;
+    const key = `${item.locale}/${item.category}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paths.push({
+      params: { locale: localeParam(item.locale), category: item.category },
+      props: { locale: item.locale, category: item.category },
+    });
+  }
+
+  return paths;
+}
+
+interface Props {
+  locale: LocaleCode;
+  category: string;
+}
+
+const { locale, category } = Astro.props;
+const t = translator(locale);
+
+const categories = await allCategories();
+const definition = categories.find((entry) => entry.slug === category);
+const label = definition?.name ?? category;
+
+const posts: LoadedPost[] = byCategory(await publishedPosts({ locale }), category);
+---
+
+<BaseLayout
+  title={`${t('archive.byCategory', { name: label })} — ${t('site.title')}`}
+  description={definition?.description ?? t('archive.byCategory', { name: label })}
+  path={`/category/${category}`}
+  locale={locale}
+>
+  <div class="wrap listing">
+    <p class="eyebrow">{t('article.category')}</p>
+    <h1>{label}</h1>
+    {definition?.description && <p class="listing__lede">{definition.description}</p>}
+
+    {
+      posts.length === 0 ? (
+        <p class="notice">{t('archive.empty')}</p>
+      ) : (
+        posts.map((post) => (
+          <PostCard item={post.item} body={post.body} locale={locale} categoryLabel={label} />
+        ))
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .listing {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .listing__lede {
+    margin-block: var(--space-3) var(--space-8);
+    color: var(--ink-600);
+    font-size: var(--size-lg);
+  }
+
+  .listing > article {
+    margin-block-start: var(--space-6);
+  }
+</style>

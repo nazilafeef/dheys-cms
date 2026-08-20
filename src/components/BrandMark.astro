@@ -1,0 +1,78 @@
+---
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * The brand mark.
+ *
+ * The logo is the operator's artwork and is expected at `src/assets/brand/dheys-logo.svg`.
+ * If it is not there, this renders a text wordmark in the display face and the build warns,
+ * naming that exact path. It never draws a substitute logo -- a generated mark that looks
+ * deliberate is worse than an obvious placeholder, because nobody notices it needs
+ * replacing.
+ *
+ * The file is inlined rather than referenced with <img> so `fill` can be swapped for
+ * `currentColor`, which is what lets the mark invert correctly in the dark scheme.
+ */
+
+export interface Props {
+  /** `bare` is unbranded by design and always uses the wordmark. */
+  theme: 'bare' | 'dheys';
+  label: string;
+}
+
+const { theme, label } = Astro.props;
+
+const LOGO_PATH = 'src/assets/brand/dheys-logo.svg';
+const absolute = fileURLToPath(new URL(`../assets/brand/dheys-logo.svg`, import.meta.url));
+
+let inlineSvg: string | undefined;
+
+if (theme === 'dheys') {
+  if (existsSync(absolute)) {
+    inlineSvg = readFileSync(absolute, 'utf8')
+      // Let the theme drive the colour. A hard-coded black mark is invisible on a dark ground.
+      .replace(/fill="(?!none)[^"]*"/g, 'fill="currentColor"')
+      .replace(/<svg /, '<svg class="brand-mark__svg" focusable="false" ')
+      .replace(/\srole="img"/g, '')
+      .replace(/\saria-label="[^"]*"/g, '');
+  } else {
+    console.warn(
+      `[dheys] Brand logo not found at ${LOGO_PATH}. Falling back to a text wordmark. ` +
+        `Supply the artwork at that path, or keep the wordmark deliberately. ` +
+        `See release/OWNER-TODO.md item 2.`,
+    );
+  }
+}
+---
+
+<span class="brand-mark" aria-label={label}>
+  {
+    inlineSvg ? (
+      <Fragment set:html={inlineSvg} />
+    ) : (
+      <span class="brand-mark__wordmark">{label}</span>
+    )
+  }
+</span>
+
+<style>
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ink-900);
+  }
+
+  .brand-mark :global(.brand-mark__svg) {
+    block-size: 1.6rem;
+    inline-size: auto;
+    color: inherit;
+  }
+
+  .brand-mark__wordmark {
+    font-family: var(--font-display);
+    font-size: var(--size-lg);
+    font-weight: var(--weight-bold);
+    letter-spacing: -0.01em;
+  }
+</style>

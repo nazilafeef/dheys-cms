@@ -1,0 +1,155 @@
+---
+import { translator, type LocaleCode } from '@lib/i18n';
+
+export interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<button
+  type="button"
+  class="theme-toggle"
+  data-theme-toggle
+  aria-label={t('theme.toggle')}
+  title={t('theme.toggle')}
+>
+  <svg
+    class="theme-toggle__icon theme-toggle__icon--sun"
+    viewBox="0 0 24 24"
+    width="18"
+    height="18"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+  >
+    <circle cx="12" cy="12" r="4"></circle>
+    <path
+      d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"
+    ></path>
+  </svg>
+  <svg
+    class="theme-toggle__icon theme-toggle__icon--moon"
+    viewBox="0 0 24 24"
+    width="18"
+    height="18"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"></path>
+  </svg>
+</button>
+
+<style>
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+    background: none;
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--ink-600);
+    cursor: pointer;
+  }
+
+  .theme-toggle:hover {
+    color: var(--ink-900);
+    border-color: var(--ink-400);
+  }
+
+  /*
+   * Which icon shows follows the *resolved* scheme, so the button always offers the
+   * scheme you are not in. Driven by CSS rather than by script, so it is correct on the
+   * first paint even before the toggle's own JavaScript has run.
+   */
+  .theme-toggle__icon--moon {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .theme-toggle__icon--sun {
+      display: none;
+    }
+
+    :root:not([data-theme='light']) .theme-toggle__icon--moon {
+      display: block;
+    }
+  }
+
+  :root[data-theme='dark'] .theme-toggle__icon--sun {
+    display: none;
+  }
+
+  :root[data-theme='dark'] .theme-toggle__icon--moon {
+    display: block;
+  }
+
+  :root[data-theme='light'] .theme-toggle__icon--sun {
+    display: block;
+  }
+
+  :root[data-theme='light'] .theme-toggle__icon--moon {
+    display: none;
+  }
+</style>
+
+<script>
+  /**
+   * Colour-scheme toggle.
+   *
+   * Cycles explicit light -> explicit dark -> back to following the system. The third
+   * state matters: once a reader has clicked once, "follow my OS" should still be
+   * reachable without clearing site data.
+   */
+  const STORAGE_KEY = 'dheys-theme';
+
+  function resolvedScheme(): 'light' | 'dark' {
+    const explicit = document.documentElement.getAttribute('data-theme');
+    if (explicit === 'light' || explicit === 'dark') return explicit;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function apply(next: 'light' | 'dark' | null): void {
+    if (next === null) {
+      document.documentElement.removeAttribute('data-theme');
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* storage unavailable; the media query still applies */
+      }
+      return;
+    }
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      /* storage unavailable; the attribute still applies for this page */
+    }
+  }
+
+  const toggles = document.querySelectorAll('[data-theme-toggle]');
+  for (const node of toggles) {
+    const button = node as HTMLButtonElement;
+    button.addEventListener('click', () => {
+      const stored = document.documentElement.getAttribute('data-theme');
+      if (stored === null) {
+        apply(resolvedScheme() === 'dark' ? 'light' : 'dark');
+      } else if (stored === 'dark') {
+        apply('light');
+      } else {
+        apply(null);
+      }
+    });
+  }
+</script>

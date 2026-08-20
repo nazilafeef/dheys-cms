@@ -1,0 +1,195 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import AdminApp from '@components/admin/AdminApp';
+import { DEFAULT_LOCALE, translator } from '@lib/i18n';
+
+/**
+ * The admin.
+ *
+ * A single Preact island, hydrated on load, and the only page on the site that ships a
+ * component framework. `client:load` rather than `client:idle` because this is the whole
+ * page — deferring it would show an empty shell to someone who navigated here on purpose.
+ *
+ * The registry is injected at build time when the deployment provides one. It is not
+ * committed to this repository and never will be; see docs/site-registry.md.
+ */
+const locale = DEFAULT_LOCALE;
+const t = translator(locale);
+
+const registryJson = import.meta.env.PUBLIC_SITE_REGISTRY as string | undefined;
+---
+
+<BaseLayout
+  title={t('admin.title')}
+  description={t('admin.signInHelp')}
+  path="/admin"
+  locale={locale}
+  noindex={true}
+>
+  <div class="wrap admin-page">
+    <AdminApp client:load locale={locale} registryJson={registryJson} />
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .admin-page {
+    padding-block: var(--space-10);
+  }
+
+  .admin--connect {
+    max-inline-size: 34rem;
+  }
+
+  .admin__help {
+    margin-block: var(--space-4);
+    color: var(--ink-600);
+  }
+
+  .admin__form {
+    display: grid;
+    gap: var(--space-2);
+    margin-block: var(--space-6);
+  }
+
+  .admin__form label {
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+    color: var(--ink-600);
+  }
+
+  .admin__form input {
+    padding: var(--space-2) var(--space-3);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    background-color: var(--paper);
+    color: var(--ink-900);
+    font-family: var(--font-mono);
+  }
+
+  .admin__form button {
+    justify-self: start;
+    padding: var(--space-2) var(--space-5);
+    border: var(--hairline) solid var(--accent);
+    border-radius: var(--radius);
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+  }
+
+  .admin__form button[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  .admin__notice,
+  .admin__error,
+  .admin__ok {
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .admin__notice {
+    color: var(--ink-500);
+  }
+
+  .admin__error {
+    color: var(--danger);
+  }
+
+  .admin__ok {
+    color: var(--success);
+  }
+
+  .admin__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding-block-end: var(--space-4);
+    border-block-end: var(--hairline) solid var(--rule);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .admin__who {
+    margin-inline-start: auto;
+    color: var(--ink-500);
+  }
+
+  .admin__link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: inherit;
+  }
+
+  .admin__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block: var(--space-5);
+  }
+
+  .admin__tab {
+    padding: var(--space-1) var(--space-3);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    background: none;
+    color: var(--ink-600);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+    cursor: pointer;
+  }
+
+  .admin__tab--active {
+    color: var(--accent-contrast);
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .admin__panel {
+    padding-block: var(--space-4);
+  }
+
+  .admin__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin-block: var(--space-5);
+  }
+
+  .admin__stats dt {
+    font-family: var(--font-ui);
+    font-size: var(--size-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+  }
+
+  .admin__stats dd {
+    margin: 0;
+    font-size: var(--size-2xl);
+    font-family: var(--font-display);
+  }
+
+  .admin__table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .admin__table th,
+  .admin__table td {
+    padding: var(--space-2) var(--space-3);
+    text-align: start;
+    border-block-end: var(--hairline) solid var(--rule);
+  }
+
+  .admin__table th {
+    color: var(--ink-500);
+    font-weight: var(--weight-medium);
+  }
+</style>

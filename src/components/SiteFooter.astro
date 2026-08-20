@@ -1,0 +1,79 @@
+---
+import { translator, type LocaleCode } from '@lib/i18n';
+import { routes } from '@lib/routes';
+
+export interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const t = translator(locale);
+const ctx = { locale, base };
+
+const feeds = [
+  { href: routes.rss(base), label: 'RSS' },
+  { href: routes.atom(base), label: 'Atom' },
+  { href: routes.jsonFeed(base), label: 'JSON Feed' },
+];
+---
+
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <p class="meta">
+      {t('footer.builtWith')} · {t('footer.licence')}
+    </p>
+
+    <nav class="site-footer__links" aria-label={t('footer.feeds')}>
+      <ul>
+        <li><a href={routes.page(ctx, 'about')}>{t('nav.home')}</a></li>
+        <li><a href={routes.admin(base)}>{t('nav.admin')}</a></li>
+        {
+          feeds.map((feed) => (
+            <li>
+              <a href={feed.href}>{feed.label}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--space-20);
+    border-block-start: var(--hairline) solid var(--rule);
+    background-color: var(--surface);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    padding-block: var(--space-8);
+  }
+
+  .site-footer__links ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .site-footer__links a {
+    color: var(--ink-600);
+    text-decoration: none;
+  }
+
+  .site-footer__links a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+</style>

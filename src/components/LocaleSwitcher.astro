@@ -1,0 +1,97 @@
+---
+import { LOCALES, translator, type LocaleCode } from '@lib/i18n';
+import { localePath } from '@lib/i18n';
+
+/**
+ * Language switcher.
+ *
+ * Each language is offered in its own script -- ދިވެހި, not "Dhivehi" -- because the
+ * person who needs the switch is by definition not reading the current language. `hreflang`
+ * and `lang` are set per link so a screen reader announces each option in the right voice.
+ *
+ * Only locales the current page actually exists in are offered. Sending a reader to a
+ * translation that was never written is a 404 dressed up as a feature.
+ */
+
+export interface Props {
+  locale: LocaleCode;
+  availableLocales: readonly LocaleCode[];
+  /** App-relative path of the current page, without a locale prefix. */
+  currentPath: string;
+  /**
+   * Explicit per-locale URLs, for pages where a translation does not share the current
+   * slug.
+   *
+   * Deriving the href by prefixing a locale onto the current path is only correct when
+   * every language uses the same slug, and for articles it never is: the Arabic version
+   * of "The tide gauge at the old harbour" lives at `mikyas-almad-fi-almina-alqadim`.
+   * Without this, the switcher sent readers to URLs that do not exist -- found by
+   * `pnpm check:links`.
+   */
+  localeUrls?: Partial<Record<LocaleCode, string>> | undefined;
+}
+
+const { locale, availableLocales, currentPath, localeUrls } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const t = translator(locale);
+
+const options = availableLocales.map((code) => ({
+  code,
+  definition: LOCALES[code],
+  href: localeUrls?.[code] ?? localePath(currentPath, code, base),
+  current: code === locale,
+}));
+---
+
+{
+  options.length > 1 && (
+    <nav class="locale-switcher" aria-label={t('nav.language')}>
+      <ul>
+        {options.map((option) => (
+          <li>
+            <a
+              href={option.href}
+              hreflang={option.code}
+              lang={option.code}
+              dir={option.definition.dir}
+              aria-current={option.current ? 'true' : undefined}
+            >
+              {option.definition.nativeName}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  .locale-switcher ul {
+    display: flex;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--size-sm);
+  }
+
+  .locale-switcher li + li {
+    border-inline-start: var(--hairline) solid var(--rule);
+    padding-inline-start: var(--space-2);
+  }
+
+  .locale-switcher a {
+    color: var(--ink-500);
+    text-decoration: none;
+  }
+
+  .locale-switcher a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  .locale-switcher a[aria-current='true'] {
+    color: var(--ink-900);
+    font-weight: var(--weight-medium);
+  }
+</style>

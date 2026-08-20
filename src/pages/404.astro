@@ -1,0 +1,65 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { translator, DEFAULT_LOCALE } from '@lib/i18n';
+import { routes } from '@lib/routes';
+
+/**
+ * A real 404 page, emitted as `404.html`.
+ *
+ * GitHub Pages serves this with an actual 404 status for any unmatched path, which is the
+ * point: a "soft 404" that returns 200 with an apology on it gets indexed, ranks, and
+ * quietly poisons a site's search presence.
+ *
+ * It is not localised. A 404 is served for paths that matched no route, so there is no
+ * locale to read off the URL — guessing one and getting it wrong is worse than English
+ * plus a language switcher.
+ */
+const locale = DEFAULT_LOCALE;
+const t = translator(locale);
+const base = import.meta.env.BASE_URL;
+const ctx = { locale, base };
+---
+
+<BaseLayout
+  title={`${t('error.404.title')} — ${t('site.title')}`}
+  description={t('error.404.body')}
+  path="/404"
+  locale={locale}
+  noindex={true}
+>
+  <div class="wrap not-found">
+    <p class="eyebrow">404</p>
+    <h1>{t('error.404.title')}</h1>
+    <p class="not-found__body">{t('error.404.body')}</p>
+
+    <ul class="not-found__links">
+      <li><a href={routes.home(ctx)}>{t('error.404.home')}</a></li>
+      <li><a href={routes.search(ctx)}>{t('error.404.search')}</a></li>
+      <li><a href={routes.archive(ctx)}>{t('nav.archive')}</a></li>
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    padding-block: var(--space-20);
+    max-inline-size: var(--content-width);
+  }
+
+  .not-found__body {
+    margin-block: var(--space-4) var(--space-8);
+    color: var(--ink-600);
+    font-size: var(--size-lg);
+  }
+
+  .not-found__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-ui);
+  }
+
+  .not-found__links li + li {
+    margin-block-start: var(--space-2);
+  }
+</style>

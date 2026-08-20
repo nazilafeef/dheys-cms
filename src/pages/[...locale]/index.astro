@@ -1,0 +1,167 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import PostCard from '@components/PostCard.astro';
+import { publishedPosts, allCategories } from '@lib/content';
+import { LOCALE_CODES, translator, type LocaleCode } from '@lib/i18n';
+import { localeParam, routes } from '@lib/routes';
+import { categoryCounts } from '@lib/collections';
+
+/**
+ * Home.
+ *
+ * One template serves every locale. The `[...locale]` rest parameter is `undefined` for
+ * the default locale, which is what makes `/` and `/dv` the same file -- the alternative
+ * is a near-identical page per language, and those drift apart within a week.
+ */
+export async function getStaticPaths() {
+  return LOCALE_CODES.map((locale) => ({
+    params: { locale: localeParam(locale) },
+    props: { locale },
+  }));
+}
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const t = translator(locale);
+const ctx = { locale, base };
+
+const posts = await publishedPosts({ locale });
+const categories = await allCategories();
+const categoryLabel = (slug: string): string =>
+  categories.find((category) => category.slug === slug)?.name ?? slug;
+
+const [lead, ...rest] = posts;
+const counts = categoryCounts(posts).slice(0, 6);
+
+// Only offer a language whose home page actually exists.
+const allPosts = await publishedPosts({});
+const availableLocales = LOCALE_CODES.filter((code) =>
+  allPosts.some((post) => post.item.locale === code),
+);
+---
+
+<BaseLayout
+  title={`${t('site.title')} — ${t('site.tagline')}`}
+  description={t('site.tagline')}
+  path="/"
+  locale={locale}
+  availableLocales={availableLocales}
+>
+  <div class="wrap home">
+    <header class="home__intro">
+      <h1>{t('site.title')}</h1>
+      <p class="home__tagline">{t('site.tagline')}</p>
+    </header>
+
+    {
+      posts.length === 0 ? (
+        <p class="notice">{t('archive.empty')}</p>
+      ) : (
+        <div class="home__grid">
+          <div class="home__main">
+            {lead && (
+              <PostCard
+                item={lead.item}
+                body={lead.body}
+                locale={locale}
+                categoryLabel={categoryLabel(lead.item.category)}
+                headingLevel={2}
+              />
+            )}
+            {rest.map((post) => (
+              <PostCard
+                item={post.item}
+                body={post.body}
+                locale={locale}
+                categoryLabel={categoryLabel(post.item.category)}
+              />
+            ))}
+          </div>
+
+          <aside class="home__aside">
+            <h2 class="home__aside-heading">{t('article.category')}</h2>
+            <ul class="home__categories">
+              {counts.map((entry) => (
+                <li>
+                  <a href={routes.category(ctx, entry.name)}>{categoryLabel(entry.name)}</a>
+                  <span class="meta"> ({entry.count})</span>
+                </li>
+              ))}
+            </ul>
+
+            <p class="home__archive-link">
+              <a href={routes.archive(ctx)}>{t('nav.archive')} →</a>
+            </p>
+          </aside>
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .home {
+    padding-block: var(--space-10);
+  }
+
+  .home__intro {
+    margin-block-end: var(--space-10);
+    padding-block-end: var(--space-6);
+    border-block-end: var(--hairline) solid var(--rule);
+  }
+
+  .home__tagline {
+    margin-block-start: var(--space-2);
+    color: var(--ink-600);
+    font-size: var(--size-lg);
+    max-inline-size: var(--measure-latin);
+  }
+
+  .home__grid {
+    display: grid;
+    gap: var(--space-10);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 60rem) {
+    .home__grid {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    }
+  }
+
+  .home__main > * + * {
+    margin-block-start: var(--space-8);
+  }
+
+  .home__aside-heading {
+    margin-block: 0 var(--space-3);
+    font-family: var(--font-ui);
+    font-size: var(--size-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+  }
+
+  .home__categories {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+
+  .home__categories li + li {
+    margin-block-start: var(--space-2);
+  }
+
+  .home__archive-link {
+    margin-block-start: var(--space-5);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+  }
+</style>

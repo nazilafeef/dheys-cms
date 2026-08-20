@@ -1,0 +1,77 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { allPages } from '@lib/content';
+import { formatDate, isoDate, translator, LOCALE_CODES, type LocaleCode } from '@lib/i18n';
+import { localeParam } from '@lib/routes';
+import type { LoadedPage } from '@lib/content';
+
+/** Standalone pages: about, contact, policies. Not listed in feeds or archives. */
+export async function getStaticPaths() {
+  const pages = await allPages();
+  return pages
+    .filter(({ item }) => !item.draft)
+    .map((page) => ({
+      params: { locale: localeParam(page.item.locale), slug: page.item.slug },
+      props: { page },
+    }));
+}
+
+interface Props {
+  page: LoadedPage;
+}
+
+const { page } = Astro.props;
+const { item, entry } = page;
+const locale = item.locale;
+const t = translator(locale);
+
+const { Content } = await render(entry);
+
+// Offer the language switcher only for locales this page was actually written in.
+const pages = await allPages();
+const availableLocales = LOCALE_CODES.filter((code) =>
+  pages.some((candidate) => candidate.item.slug === item.slug && candidate.item.locale === code),
+);
+---
+
+<BaseLayout
+  title={`${item.seo.title ?? item.title} — ${t('site.title')}`}
+  description={item.seo.description ?? item.excerpt ?? t('site.tagline')}
+  path={`/${item.slug}`}
+  locale={locale}
+  availableLocales={availableLocales}
+  noindex={item.seo.noindex}
+>
+  <article class="wrap page">
+    <header class="page__header">
+      <h1>{item.title}</h1>
+      {
+        item.updatedDate && (
+          <p class="meta">
+            <time datetime={isoDate(item.updatedDate)}>
+              {t('article.updatedOn', { date: formatDate(item.updatedDate, locale) })}
+            </time>
+          </p>
+        )
+      }
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .page__header {
+    margin-block-end: var(--space-8);
+    padding-block-end: var(--space-4);
+    border-block-end: var(--hairline) solid var(--rule);
+  }
+</style>

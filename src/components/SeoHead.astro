@@ -1,0 +1,189 @@
+---
+import { canonicalUrl } from '@lib/paths';
+import { hreflangAlternates, LOCALES, DEFAULT_LOCALE, type LocaleCode } from '@lib/i18n';
+import { routes } from '@lib/routes';
+
+/**
+ * Everything that goes in <head> and is not a stylesheet.
+ *
+ * The rule this component exists to enforce: every URL it emits is absolute and carries
+ * the deployment base. A canonical tag, an OpenGraph image or a JSON-LD `url` that is
+ * relative, or that is absolute but missing the `/dheys-cms` sub-path, is worse than
+ * absent -- it tells a crawler something confidently wrong.
+ */
+
+export interface Props {
+  title: string;
+  description: string;
+  /** App-relative path for this page, e.g. `/articles/some-slug`. */
+  path: string;
+  locale: LocaleCode;
+  /** Locales this same page exists in, for hreflang. */
+  availableLocales?: readonly LocaleCode[];
+  type?: 'website' | 'article';
+  publishedTime?: Date | undefined;
+  modifiedTime?: Date | undefined;
+  author?: string | undefined;
+  section?: string | undefined;
+  tags?: readonly string[];
+  noindex?: boolean;
+  /** Absolute or app-relative image path. */
+  image?: string | undefined;
+  imageAlt?: string | undefined;
+  /** Extra JSON-LD nodes to merge into the graph. */
+  jsonLd?: readonly Record<string, unknown>[];
+  /**
+   * Per-locale app-relative URLs for this page. When present these are used verbatim for
+   * hreflang; deriving them by prefixing a locale is wrong for any page whose translations
+   * have their own slugs.
+   */
+  localeUrls?: Partial<Record<LocaleCode, string>> | undefined;
+}
+
+const {
+  title,
+  description,
+  path,
+  locale,
+  availableLocales = [locale],
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  author,
+  section,
+  tags = [],
+  noindex = false,
+  image,
+  imageAlt,
+  jsonLd = [],
+  localeUrls,
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const site = Astro.site?.href ?? 'http://localhost:4321';
+
+const canonical = canonicalUrl(path, site, base);
+const siteName = 'Dheys CMS';
+const ogImage = image ? canonicalUrl(image, site, base) : undefined;
+const alternates = localeUrls
+  ? buildExplicitAlternates(localeUrls, availableLocales)
+  : hreflangAlternates(path, availableLocales, site, base);
+
+function buildExplicitAlternates(
+  urls: Partial<Record<LocaleCode, string>>,
+  locales: readonly LocaleCode[],
+): Array<{ hreflang: string; href: string }> {
+  const list: Array<{ hreflang: string; href: string }> = [];
+  for (const code of locales) {
+    const href = urls[code];
+    if (href) list.push({ hreflang: code as string, href: canonicalUrl(href, site, '/') });
+  }
+  const fallback = urls[DEFAULT_LOCALE];
+  if (fallback) list.push({ hreflang: 'x-default', href: canonicalUrl(fallback, site, '/') });
+  return list;
+}
+
+const organization = {
+  '@type': 'Organization',
+  '@id': `${canonicalUrl('/', site, base)}#organization`,
+  name: siteName,
+  url: canonicalUrl('/', site, base),
+};
+
+const website = {
+  '@type': 'WebSite',
+  '@id': `${canonicalUrl('/', site, base)}#website`,
+  name: siteName,
+  url: canonicalUrl('/', site, base),
+  inLanguage: locale,
+  publisher: { '@id': organization['@id'] },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${canonicalUrl(routes.search({ locale, base }), site, base)}?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const graph: Record<string, unknown>[] = [organization, website, ...jsonLd];
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+{
+  alternates.map((alternate) => (
+    <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />
+  ))
+}
+
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:locale" content={locale} />
+{ogImage && <meta property="og:image" content={ogImage} />}
+{ogImage && imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+
+{
+  availableLocales
+    .filter((code) => code !== locale)
+    .map((code) => <meta property="og:locale:alternate" content={code} />)
+}
+
+<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+{ogImage && <meta name="twitter:image" content={ogImage} />}
+
+{
+  type === 'article' && publishedTime && (
+    <meta property="article:published_time" content={publishedTime.toISOString()} />
+  )
+}
+{
+  type === 'article' && modifiedTime && (
+    <meta property="article:modified_time" content={modifiedTime.toISOString()} />
+  )
+}
+{type === 'article' && author && <meta property="article:author" content={author} />}
+{type === 'article' && section && <meta property="article:section" content={section} />}
+{type === 'article' && tags.map((tag) => <meta property="article:tag" content={tag} />)}
+
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={`${siteName} — RSS`}
+  href={canonicalUrl(routes.rss(base), site, base)}
+/>
+<link
+  rel="alternate"
+  type="application/atom+xml"
+  title={`${siteName} — Atom`}
+  href={canonicalUrl(routes.atom(base), site, base)}
+/>
+<link
+  rel="alternate"
+  type="application/feed+json"
+  title={`${siteName} — JSON Feed`}
+  href={canonicalUrl(routes.jsonFeed(base), site, base)}
+/>
+
+<script
+  type="application/ld+json"
+  is:inline
+  set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}
+/>
+
+<meta name="generator" content={Astro.generator} />
+<meta name="theme-color" content="#fbfaf6" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)" />
+<meta http-equiv="content-language" content={locale} />
+<meta name="language" content={LOCALES[locale].name} />

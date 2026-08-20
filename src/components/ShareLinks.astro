@@ -1,0 +1,132 @@
+---
+import { translator, type LocaleCode } from '@lib/i18n';
+
+/**
+ * Share links.
+ *
+ * Plain anchors to each network's share endpoint. No SDK, no widget, no iframe, and
+ * therefore no third-party script executing on an article page and no request to anyone
+ * before the reader has chosen to share. This is worth roughly 200 KB of JavaScript and
+ * several tracking requests per page against the usual approach.
+ *
+ * The copy-link button is the only scripted control, and it degrades to nothing if
+ * scripting is off -- the URL is in the address bar either way.
+ */
+
+export interface Props {
+  url: string;
+  title: string;
+  locale: LocaleCode;
+}
+
+const { url, title, locale } = Astro.props;
+const t = translator(locale);
+
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+
+const targets = [
+  {
+    label: t('article.shareOnX'),
+    short: 'X',
+    href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
+  },
+  {
+    label: t('article.shareOnFacebook'),
+    short: 'Facebook',
+    href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+  },
+  {
+    label: t('article.shareOnLinkedIn'),
+    short: 'LinkedIn',
+    href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+  },
+];
+---
+
+<div class="share">
+  <h2 class="share__heading">{t('article.share')}</h2>
+  <ul class="share__list">
+    {
+      targets.map((target) => (
+        <li>
+          <a href={target.href} rel="noopener nofollow" target="_blank" aria-label={target.label}>
+            {target.short}
+          </a>
+        </li>
+      ))
+    }
+    <li>
+      <button type="button" data-copy-link={url} class="share__copy">
+        {t('article.copyLink')}
+      </button>
+    </li>
+  </ul>
+</div>
+
+<style>
+  .share {
+    margin-block-start: var(--space-8);
+  }
+
+  .share__heading {
+    margin-block: 0 var(--space-2);
+    font-family: var(--font-ui);
+    font-size: var(--size-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+  }
+
+  .share__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .share__list a,
+  .share__copy {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    background: none;
+    color: var(--ink-600);
+    font-family: var(--font-ui);
+    font-size: var(--size-sm);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .share__list a:hover,
+  .share__copy:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+</style>
+
+<script>
+  const copyButtons = document.querySelectorAll('[data-copy-link]');
+  for (const node of copyButtons) {
+    const button = node as HTMLButtonElement;
+    button.addEventListener('click', async () => {
+      const url = button.dataset.copyLink;
+      if (!url) return;
+      const original = button.textContent;
+      try {
+        await navigator.clipboard.writeText(url);
+        button.textContent = button.dataset.copiedLabel ?? '✓';
+      } catch {
+        // Clipboard access can be refused outright. Say nothing rather than claim success.
+        return;
+      }
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 2000);
+    });
+  }
+</script>

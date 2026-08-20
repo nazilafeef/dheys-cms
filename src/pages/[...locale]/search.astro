@@ -1,0 +1,219 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { LOCALE_CODES, translator, type LocaleCode } from '@lib/i18n';
+import { localeParam } from '@lib/routes';
+import { withBase } from '@lib/paths';
+
+export async function getStaticPaths() {
+  return LOCALE_CODES.map((locale) => ({
+    params: { locale: localeParam(locale) },
+    props: { locale },
+  }));
+}
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = translator(locale);
+const base = import.meta.env.BASE_URL;
+
+/**
+ * Search.
+ *
+ * Pagefind builds its index from the rendered output after `astro build`, so it indexes
+ * exactly what a reader sees, including Thaana and Arabic, and needs no server.
+ *
+ * Its runtime is loaded only here, and only when the reader actually types. An article
+ * page must stay under 30 KB of JavaScript, and a search library that loads everywhere
+ * spends that budget on a feature almost nobody on that page will use.
+ */
+const pagefindPath = withBase('/_pagefind/pagefind.js', base);
+---
+
+<BaseLayout
+  title={`${t('search.title')} — ${t('site.title')}`}
+  description={t('search.placeholder')}
+  path="/search"
+  locale={locale}
+  noindex={true}
+>
+  <div class="wrap search">
+    <h1>{t('search.title')}</h1>
+
+    <form class="search__form" role="search" data-search-form>
+      <label class="visually-hidden" for="search-input">{t('search.placeholder')}</label>
+      <input
+        id="search-input"
+        type="search"
+        name="q"
+        autocomplete="off"
+        placeholder={t('search.placeholder')}
+        data-search-input
+        data-pagefind-path={pagefindPath}
+        data-locale={locale}
+      />
+      <button type="submit">{t('admin.common.search')}</button>
+    </form>
+
+    <p class="meta" data-search-status aria-live="polite"></p>
+
+    <div data-search-results class="search__results"></div>
+
+    <noscript>
+      <p class="notice">{t('search.noResults', { query: '' })}</p>
+    </noscript>
+  </div>
+</BaseLayout>
+
+<style>
+  .search {
+    padding-block: var(--space-10);
+    max-inline-size: var(--content-width);
+  }
+
+  .search__form {
+    display: flex;
+    gap: var(--space-2);
+    margin-block: var(--space-6);
+  }
+
+  .search__form input {
+    flex: 1;
+    padding: var(--space-2) var(--space-3);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    background-color: var(--paper);
+    color: var(--ink-900);
+  }
+
+  .search__form button {
+    padding: var(--space-2) var(--space-4);
+    border: var(--hairline) solid var(--accent);
+    border-radius: var(--radius);
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+  }
+
+  .search__results :global(.search-result) {
+    padding-block: var(--space-5);
+    border-block-end: var(--hairline) solid var(--rule);
+  }
+
+  .search__results :global(.search-result h2) {
+    margin-block: 0 var(--space-2);
+    font-size: var(--size-lg);
+  }
+
+  .search__results :global(mark) {
+    background-color: transparent;
+    color: var(--accent);
+    font-weight: var(--weight-medium);
+  }
+</style>
+
+<script>
+  interface PagefindResultData {
+    url: string;
+    excerpt: string;
+    meta?: { title?: string };
+  }
+  interface PagefindResult {
+    data: () => Promise<PagefindResultData>;
+  }
+  interface PagefindApi {
+    search: (query: string) => Promise<{ results: PagefindResult[] }>;
+    options?: (options: Record<string, unknown>) => Promise<void>;
+  }
+
+  const input = document.querySelector('[data-search-input]') as HTMLInputElement | null;
+  const results = document.querySelector('[data-search-results]') as HTMLElement | null;
+  const status = document.querySelector('[data-search-status]') as HTMLElement | null;
+  const form = document.querySelector('[data-search-form]') as HTMLFormElement | null;
+
+  if (input && results && status && form) {
+    let pagefind: PagefindApi | undefined;
+    let loadFailed = false;
+
+    async function ensureLoaded(): Promise<PagefindApi | undefined> {
+      if (pagefind || loadFailed) return pagefind;
+      const path = input?.dataset.pagefindPath;
+      if (!path) return undefined;
+      try {
+        pagefind = (await import(/* @vite-ignore */ path)) as PagefindApi;
+        return pagefind;
+      } catch {
+        // The index only exists after `pnpm build`. In `astro dev` it is absent, and
+        // saying so beats an unexplained empty result list.
+        loadFailed = true;
+        return undefined;
+      }
+    }
+
+    /**
+     * Results are built as DOM nodes, not as an HTML string.
+     *
+     * The title and URL come from the index and go through `textContent`, so there is no
+     * escaping to get right and no injection surface. Only Pagefind's own `excerpt` is
+     * inserted as markup, because it carries the <mark> tags that highlight the match --
+     * and that string is generated by the indexer from this site's own build output.
+     */
+    function renderResult(item: PagefindResultData): HTMLElement {
+      const article = document.createElement('article');
+      article.className = 'search-result';
+
+      const heading = document.createElement('h2');
+      const link = document.createElement('a');
+      link.href = item.url;
+      link.textContent = item.meta?.title ?? item.url;
+      heading.append(link);
+
+      const excerpt = document.createElement('p');
+      excerpt.innerHTML = item.excerpt;
+
+      article.append(heading, excerpt);
+      return article;
+    }
+
+    async function run(query: string): Promise<void> {
+      if (!results || !status) return;
+      if (query.trim() === '') {
+        results.replaceChildren();
+        status.textContent = '';
+        return;
+      }
+
+      const api = await ensureLoaded();
+      if (!api) {
+        status.textContent = 'The search index is only built by `pnpm build`.';
+        return;
+      }
+
+      const search = await api.search(query);
+      const found = await Promise.all(search.results.slice(0, 20).map((result) => result.data()));
+
+      status.textContent = String(found.length);
+      results.replaceChildren(...found.map(renderResult));
+    }
+
+    let timer: number | undefined;
+    input.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void run(input.value), 180);
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void run(input.value);
+    });
+
+    // Deep links: /search?q=thaana should work when shared.
+    const initial = new URLSearchParams(window.location.search).get('q');
+    if (initial) {
+      input.value = initial;
+      void run(initial);
+    }
+  }
+</script>
