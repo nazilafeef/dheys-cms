@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # CI builds the default (sub-path) hosting mode. The root-hosting mode is covered
+  # by the unit tests in tests/unit/paths.test.ts and by the `root-hosting` job below.
+  SITE_URL: https://nazilafeef.github.io
+  BASE_PATH: /dheys-cms
+
+jobs:
+  gate:
+    name: Gate (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the clean-room gate scans the full commit history
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Clean-room gate
+        run: pnpm check:clean-room
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Internal link check
+        run: pnpm check:links
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests (all network mocked)
+        run: pnpm test:e2e
+
+      - name: Lighthouse thresholds
+        run: pnpm lighthouse
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-node${{ matrix.node }}
+          path: playwright-report/
+          retention-days: 7
+
+  root-hosting:
+    name: Build under root hosting
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: https://cms.example.test
+      BASE_PATH: /
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build with base '/'
+        run: pnpm build
+      - name: Assert no sub-path leaked into the output
+        run: pnpm check:links

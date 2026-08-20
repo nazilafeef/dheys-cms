@@ -1,0 +1,45 @@
+name: Nightly cross-platform gate
+
+# The Windows and macOS runners bill at 2x and 10x the Linux rate. Running them on
+# every push would burn the free Actions allowance in days, so the full matrix runs
+# once a night and on demand instead. Linux is covered per-push by ci.yml.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SITE_URL: https://nazilafeef.github.io
+  BASE_PATH: /dheys-cms
+
+jobs:
+  gate:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        node: ['22']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:clean-room
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm check:links
