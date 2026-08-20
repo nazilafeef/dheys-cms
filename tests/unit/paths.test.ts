@@ -118,7 +118,9 @@ describe('canonicalUrl', () => {
   const site = 'https://nazilafeef.github.io';
 
   it('builds an absolute URL under sub-path hosting', () => {
-    expect(canonicalUrl('/about', site, SUBPATH)).toBe('https://nazilafeef.github.io/dheys-cms/about');
+    expect(canonicalUrl('/about', site, SUBPATH)).toBe(
+      'https://nazilafeef.github.io/dheys-cms/about',
+    );
   });
 
   it('builds an absolute URL under root hosting', () => {

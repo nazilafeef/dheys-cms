@@ -1,0 +1,21 @@
+# Normalise line endings so a clone on Windows, macOS and Linux produces byte-identical
+# working trees. Without this the CI matrix reports spurious diffs and prettier --check
+# disagrees with itself across platforms.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.bundle binary
+
+pnpm-lock.yaml -diff linguist-generated

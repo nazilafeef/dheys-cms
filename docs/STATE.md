@@ -28,34 +28,34 @@ each adapter emits output a consumer can actually load.
 These modules are complete, typechecked and (where noted) unit-tested. They have no UI or
 runner in front of them yet — that arrives in the slice named.
 
-| File | Covered by tests | Wired in slice |
-|---|---|---|
-| `src/lib/paths.ts` | yes — 38 cases, both hosting modes | 1 (done) |
-| `scripts/clean-room.mjs` | yes — 27 cases including planted violations | 1 (done) |
-| `src/lib/i18n.ts` | not yet | 5 |
-| `src/lib/slug.ts` | not yet | 5 |
-| `src/lib/schemas.ts` | not yet | 2 |
-| `src/lib/editorial.ts` | not yet | 10 |
-| `src/lib/job-contract.ts` | not yet | 12 |
-| `src/lib/guardrails.ts` | not yet | 14 |
-| `src/lib/scheduler.ts` | not yet | 11 |
-| `src/lib/cost.ts` | not yet | 12 |
+| File                      | Covered by tests                            | Wired in slice |
+| ------------------------- | ------------------------------------------- | -------------- |
+| `src/lib/paths.ts`        | yes — 38 cases, both hosting modes          | 1 (done)       |
+| `scripts/clean-room.mjs`  | yes — 27 cases including planted violations | 1 (done)       |
+| `src/lib/i18n.ts`         | not yet                                     | 5              |
+| `src/lib/slug.ts`         | not yet                                     | 5              |
+| `src/lib/schemas.ts`      | not yet                                     | 2              |
+| `src/lib/editorial.ts`    | not yet                                     | 10             |
+| `src/lib/job-contract.ts` | not yet                                     | 12             |
+| `src/lib/guardrails.ts`   | not yet                                     | 14             |
+| `src/lib/scheduler.ts`    | not yet                                     | 11             |
+| `src/lib/cost.ts`         | not yet                                     | 12             |
 
 ## Gate status
 
 Last run at the end of slice 1.
 
-| Gate | Status | Notes |
-|---|---|---|
-| `pnpm install --frozen-lockfile` | pass | clean after declaring `pnpm.onlyBuiltDependencies` for esbuild and sharp |
-| `pnpm typecheck` | pass (`tsc --noEmit`) | `astro check` not yet meaningful — no `.astro` files exist |
-| `pnpm lint` | not yet run | ESLint flat config written; first run due in slice 2 |
-| `pnpm test` | pass — 65 tests | paths (38), clean-room (27) |
-| `pnpm test:e2e` | not yet run | no pages to exercise until slice 3 |
-| `pnpm check:clean-room` | pass | 35 files + full commit history, no violations |
-| `pnpm build` | not yet run | needs at least one page; due in slice 3 |
-| `pnpm check:links` | not yet written | slice 3 |
-| `pnpm lighthouse` | not yet written | slice 6 |
+| Gate                             | Status                | Notes                                                                    |
+| -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `pnpm install --frozen-lockfile` | pass                  | clean after declaring `pnpm.onlyBuiltDependencies` for esbuild and sharp |
+| `pnpm typecheck`                 | pass (`tsc --noEmit`) | `astro check` not yet meaningful — no `.astro` files exist               |
+| `pnpm lint`                      | not yet run           | ESLint flat config written; first run due in slice 2                     |
+| `pnpm test`                      | pass — 65 tests       | paths (38), clean-room (27)                                              |
+| `pnpm test:e2e`                  | not yet run           | no pages to exercise until slice 3                                       |
+| `pnpm check:clean-room`          | pass                  | 35 files + full commit history, no violations                            |
+| `pnpm build`                     | not yet run           | needs at least one page; due in slice 3                                  |
+| `pnpm check:links`               | not yet written       | slice 3                                                                  |
+| `pnpm lighthouse`                | not yet written       | slice 6                                                                  |
 
 ## Open decisions affecting what comes next
 

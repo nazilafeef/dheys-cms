@@ -243,12 +243,7 @@ export interface QueueEntry {
 }
 
 export type DecisionAction =
-  | 'publish'
-  | 'hold'
-  | 'blocked'
-  | 'already-published'
-  | 'halted'
-  | 'awaiting-approval';
+  'publish' | 'hold' | 'blocked' | 'already-published' | 'halted' | 'awaiting-approval';
 
 export interface Decision {
   readonly id: string;
@@ -302,7 +297,11 @@ export function tick(input: TickInput): TickResult {
     // Idempotency first: an item already out is never reconsidered, whatever else is
     // true of it.
     if (ledger.has(entry.id) || entry.item.state === 'published') {
-      decisions.push({ ...base, action: 'already-published', reason: 'Already published — skipped.' });
+      decisions.push({
+        ...base,
+        action: 'already-published',
+        reason: 'Already published — skipped.',
+      });
       continue;
     }
 
@@ -328,9 +327,7 @@ export function tick(input: TickInput): TickResult {
 
     // Guardrails apply to every route to publication, including `auto`.
     if (!entry.guardrailsPassed) {
-      const detail = entry.guardrailMessages?.length
-        ? ` ${entry.guardrailMessages.join(' ')}`
-        : '';
+      const detail = entry.guardrailMessages?.length ? ` ${entry.guardrailMessages.join(' ')}` : '';
       decisions.push({ ...base, action: 'blocked', reason: `Blocked by guardrails.${detail}` });
       continue;
     }

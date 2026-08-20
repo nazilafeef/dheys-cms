@@ -1,9 +1,4 @@
-import {
-  EDITORIAL_STATES,
-  type Actor,
-  type EditorialState,
-  type Transition,
-} from './schemas';
+import { EDITORIAL_STATES, type Actor, type EditorialState, type Transition } from './schemas';
 
 /**
  * The editorial state machine.
@@ -130,10 +125,7 @@ export function tryTransition<T extends StatefulItem>(
  * ------------------------------------------------------------------ */
 
 /** The most recent transition into `state`, if the item ever entered it. */
-export function lastEntryInto(
-  item: StatefulItem,
-  state: EditorialState,
-): Transition | undefined {
+export function lastEntryInto(item: StatefulItem, state: EditorialState): Transition | undefined {
   for (let index = item.transitions.length - 1; index >= 0; index -= 1) {
     const record = item.transitions[index];
     if (record?.to === state) return record;
@@ -152,7 +144,9 @@ export function enteredCurrentStateAt(item: StatefulItem): Date | undefined {
  * deliberately does not count a system actor that moved the item on a deadline.
  */
 export function hasHumanApproval(item: StatefulItem): boolean {
-  return item.transitions.some((record) => record.to === 'approved' && record.actor.kind === 'human');
+  return item.transitions.some(
+    (record) => record.to === 'approved' && record.actor.kind === 'human',
+  );
 }
 
 /** Every actor that has touched the item, in first-seen order. */

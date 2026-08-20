@@ -7,7 +7,7 @@ merely happened.
 ## Slice 1 — skeleton, config, base path, CI, clean-room gate
 
 1. **`gh` was not installed on the build machine.** The brief's preflight stops only for an
-   *unauthenticated* `gh`. Absent is a different thing and installing a dependency is
+   _unauthenticated_ `gh`. Absent is a different thing and installing a dependency is
    explicitly authorised, so `gh` was installed via winget rather than treated as a stop.
    `gh` was still unauthenticated afterwards, which is a genuine stop for ship steps 2–6
    only; slices 1–17 are entirely local and proceeded.
@@ -24,7 +24,7 @@ merely happened.
    `actor.id` and `admin.nav.media` are member expressions and i18n keys whose suffixes are
    all real public suffixes (`.at`, `.to`, `.id`, `.media`). The first full run produced
    pages of noise. Detection is now: scheme- or `@`-anchored hosts everywhere,
-   `www.`-prefixed hosts everywhere, and bare hosts in prose files and JSON *values* only.
+   `www.`-prefixed hosts everywhere, and bare hosts in prose files and JSON _values_ only.
    **Residual gap, stated plainly:** a hostname hard-coded bare, with no scheme and no
    `www.`, inside a source-file string literal would not be caught. Every other form is,
    and all site configuration in this project lives in YAML/JSON/Markdown, which are

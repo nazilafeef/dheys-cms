@@ -145,7 +145,11 @@ export interface RejectedJob {
 
 export type IntakeOutcome = AcceptedJob | RejectedJob;
 
-function summarise(runId: string, errors: readonly FieldError[], missing: readonly string[]): string {
+function summarise(
+  runId: string,
+  errors: readonly FieldError[],
+  missing: readonly string[],
+): string {
   if (missing.length > 0) {
     return `Job ${runId} rejected at intake: missing ${missing.join(', ')}. Required fields are ${REQUIRED_ITEM_FIELDS.join(', ')}.`;
   }
@@ -164,7 +168,13 @@ export function intake(raw: unknown): IntakeOutcome {
   if (!parsedResult.success) {
     const errors = toFieldErrors(parsedResult.error);
     const runId = readRunId(raw);
-    return { accepted: false, runId, errors, missingFields: [], summary: summarise(runId, errors, []) };
+    return {
+      accepted: false,
+      runId,
+      errors,
+      missingFields: [],
+      summary: summarise(runId, errors, []),
+    };
   }
 
   const result = parsedResult.data;
@@ -183,9 +193,7 @@ export function intake(raw: unknown): IntakeOutcome {
   }
 
   if (result.item === undefined || result.item === null) {
-    const errors: FieldError[] = [
-      { field: 'item', message: 'a completed job must carry an item' },
-    ];
+    const errors: FieldError[] = [{ field: 'item', message: 'a completed job must carry an item' }];
     return {
       accepted: false,
       runId: result.runId,

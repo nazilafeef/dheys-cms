@@ -145,7 +145,8 @@ export const scheduleSchema = z
     reviewDeadline: z.coerce.date().optional(),
   })
   .refine((value) => !(value.at && value.window), {
-    message: 'schedule.at and schedule.window are mutually exclusive — pick a fixed time or a window',
+    message:
+      'schedule.at and schedule.window are mutually exclusive — pick a fixed time or a window',
     path: ['at'],
   });
 
@@ -188,13 +189,10 @@ export type RequiredItemField = (typeof REQUIRED_ITEM_FIELDS)[number];
 
 const localeSchema = z.enum(LOCALE_CODES as [LocaleCode, ...LocaleCode[]]);
 
-const slugSchema = z
-  .string()
-  .min(1, 'slug is required')
-  .refine(isValidSlug, {
-    message:
-      'slug must be lowercase, digits and single hyphens only. Thaana titles are transliterated by slugify() — do not percent-encode.',
-  });
+const slugSchema = z.string().min(1, 'slug is required').refine(isValidSlug, {
+  message:
+    'slug must be lowercase, digits and single hyphens only. Thaana titles are transliterated by slugify() — do not percent-encode.',
+});
 
 /* ------------------------------------------------------------------ *
  * Post
@@ -250,10 +248,7 @@ const postBase = z.object({
  * reported at once -- an editor fixing agent output should see all of it, not one
  * error per save.
  */
-function applyItemInvariants(
-  value: z.infer<typeof postBase>,
-  ctx: z.RefinementCtx,
-): void {
+function applyItemInvariants(value: z.infer<typeof postBase>, ctx: z.RefinementCtx): void {
   // AI-authored content must carry provenance. Publishing it under a bare human name
   // is the one thing this system must never do.
   if ((value.sourceType === 'ai' || value.sourceType === 'ai-assisted') && !value.provenance) {
@@ -411,7 +406,14 @@ export const CONTENT_TYPES: Readonly<Record<string, ContentTypeDefinition>> = Ob
     listed: false,
     editorial: false,
   },
-  tag: { id: 'tag', label: 'Tag', directory: 'tags', schema: tagSchema, listed: false, editorial: false },
+  tag: {
+    id: 'tag',
+    label: 'Tag',
+    directory: 'tags',
+    schema: tagSchema,
+    listed: false,
+    editorial: false,
+  },
   series: {
     id: 'series',
     label: 'Series',

@@ -21,13 +21,18 @@ Everything else in the build is unaffected.
 
 ---
 
-**2. Supply the Dheys logo.** — *1 minute once the file exists, cosmetic*
+**2. Confirm the Dheys logo is the artwork you intended.** — *1 minute, cosmetic* — **mostly done**
 
-Drop the artwork at `src/assets/brand/dheys-logo.svg`. Until it is there the Dheys theme
-renders a text wordmark placeholder and the build prints a warning naming that exact path.
-No substitute logo has been drawn, deliberately.
+`src/assets/brand/dheys-logo.svg` was placed there during the build (a 2.7 KB single-path
+Thaana wordmark, `viewBox="0 0 309 160"`). It is wired into the Dheys theme and the build no
+longer warns. No substitute was drawn at any point — the placeholder path remains in the
+code for the case where the file is absent.
 
-Blocks: nothing functional. The Dheys theme looks unfinished without it.
+Worth checking: the artwork ships with `fill="#000"`, which the theme overrides to
+`currentColor` so it inverts correctly in dark mode. If the intended mark has more than one
+colour, it needs re-exporting.
+
+Blocks: nothing.
 
 ---
 

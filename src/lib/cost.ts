@@ -180,7 +180,8 @@ export function checkDispatch(input: DispatchCheckInput): DispatchVerdict {
     );
   }
 
-  const spent = siteCap === undefined ? globalSpent : spendInMonth(input.ledger, month, input.siteId, timeZone);
+  const spent =
+    siteCap === undefined ? globalSpent : spendInMonth(input.ledger, month, input.siteId, timeZone);
   const cap = siteCap ?? input.caps.globalMonthlyUsd;
   return {
     allowed: true,
@@ -262,7 +263,9 @@ export function summariseSpend(
 ): SpendSummary {
   const month = monthKey(now, timeZone);
   const inMonth = ledger.filter((entry) => monthKey(entry.at, timeZone) === month);
-  const siteIds = [...new Set([...inMonth.map((e) => e.siteId), ...Object.keys(caps.perSiteMonthlyUsd)])];
+  const siteIds = [
+    ...new Set([...inMonth.map((e) => e.siteId), ...Object.keys(caps.perSiteMonthlyUsd)]),
+  ];
 
   const globalSpent = round(inMonth.reduce((total, entry) => total + entry.costUsd, 0));
 

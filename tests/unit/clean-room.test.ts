@@ -107,6 +107,19 @@ describe('clean-room gate — where bare hostnames are read', () => {
     expect(scanText(text, 'src/lib/scheduler.ts')).toEqual([]);
   });
 
+  it('scans a commit message as prose, since the history is committed too', () => {
+    // The CLI passes `commit <sha>` as the pseudo-path. It has no extension, which is
+    // what puts it in the prose set — this caught a real leak in the first commit.
+    const host = plant('an-operator', '-domain', '.co');
+    const violations = scanText(`fix: point the feed at ${host}`, 'commit d7d9a4360d');
+    expect(violations.map((v) => v.match)).toEqual([host]);
+  });
+
+  it('allows the Co-Authored-By trailer that every commit here carries', () => {
+    const trailer = 'Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>';
+    expect(scanText(trailer, 'commit d7d9a4360d')).toEqual([]);
+  });
+
   it('reads a www-prefixed hostname even inside a source file', () => {
     const host = plant('www.', 'operator', '-site', '.com');
     const violations = scanText(`const SITE = '${host}';`, 'src/lib/config.ts');

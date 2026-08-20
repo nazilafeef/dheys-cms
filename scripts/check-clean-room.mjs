@@ -41,7 +41,10 @@ function listFiles() {
       ? ['diff', '--cached', '--name-only', '--diff-filter=ACMR']
       : ['ls-files'];
     const out = execFileSync('git', gitArgs, { cwd: ROOT, encoding: 'utf8' });
-    const files = out.split('\n').map((l) => l.trim()).filter(Boolean);
+    const files = out
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     if (files.length > 0) return files;
   } catch {
     // Not a git repo yet, or git unavailable -- fall through to a filesystem walk.

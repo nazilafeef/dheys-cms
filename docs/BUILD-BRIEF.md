@@ -15,12 +15,12 @@ publishing and verification.
 
 ### Fixed location
 
-| | |
-|---|---|
-| Working directory | `D:\2026\dheys-cms` |
-| Remote | `https://github.com/nazilafeef/dheys-cms.git` |
-| Visibility | public |
-| Live URL | `https://nazilafeef.github.io/dheys-cms/` |
+|                   |                                               |
+| ----------------- | --------------------------------------------- |
+| Working directory | `D:\2026\dheys-cms`                           |
+| Remote            | `https://github.com/nazilafeef/dheys-cms.git` |
+| Visibility        | public                                        |
+| Live URL          | `https://nazilafeef.github.io/dheys-cms/`     |
 
 No scratch clones, sibling directories or working copies elsewhere. No reading from or
 writing to any other repository on the machine.
@@ -64,22 +64,22 @@ command fails, fix it and re-run. "Known issue" is not an available outcome.
 
 ## 2. PRE-RESOLVED DECISIONS
 
-| Situation | What to do |
-|---|---|
-| The Dheys logo file is absent | Text wordmark placeholder in the display face, build warning naming `src/assets/brand/dheys-logo.svg`, OWNER-TODO entry. Never draw a substitute logo. |
-| Brand colours, type scale or spacing needed | Use the tokens in section 9. They are the specification. |
-| Font licensing unresolved | Ship no font binary in this repo, ever. Use the font slot in section 9 and a permissively-licensed fallback. State the open question plainly in `docs/FONTS.md`. |
-| Curiosity about an existing agent system | Do not read another repository. Build to the job contract in section 5. |
-| No AI key in the environment | Build all providers, test against mocks, skip live-provider verification, say so in the report. |
-| A library's licence is incompatible with MIT | Do not use it. |
-| A Lighthouse threshold is not reachable | Fix the cause. If the cause is a feature, remove or defer the feature. Never lower the threshold. |
-| Two requirements conflict | Pick the reading that serves a first-time end user, log it, continue. |
-| A dependency has a known CVE | Upgrade or replace. |
-| A test is flaky | Fix the flakiness. Never skip, never `.todo`, never retry to hide it. |
-| Example data needed | Invent a fictional site. |
-| Context running low | Follow section 12 immediately. |
-| The remote already holds substantive content | Preflight failure. Stop. |
-| Scope feels too large | Follow the slice order in section 11 and keep going. |
+| Situation                                    | What to do                                                                                                                                                       |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The Dheys logo file is absent                | Text wordmark placeholder in the display face, build warning naming `src/assets/brand/dheys-logo.svg`, OWNER-TODO entry. Never draw a substitute logo.           |
+| Brand colours, type scale or spacing needed  | Use the tokens in section 9. They are the specification.                                                                                                         |
+| Font licensing unresolved                    | Ship no font binary in this repo, ever. Use the font slot in section 9 and a permissively-licensed fallback. State the open question plainly in `docs/FONTS.md`. |
+| Curiosity about an existing agent system     | Do not read another repository. Build to the job contract in section 5.                                                                                          |
+| No AI key in the environment                 | Build all providers, test against mocks, skip live-provider verification, say so in the report.                                                                  |
+| A library's licence is incompatible with MIT | Do not use it.                                                                                                                                                   |
+| A Lighthouse threshold is not reachable      | Fix the cause. If the cause is a feature, remove or defer the feature. Never lower the threshold.                                                                |
+| Two requirements conflict                    | Pick the reading that serves a first-time end user, log it, continue.                                                                                            |
+| A dependency has a known CVE                 | Upgrade or replace.                                                                                                                                              |
+| A test is flaky                              | Fix the flakiness. Never skip, never `.todo`, never retry to hide it.                                                                                            |
+| Example data needed                          | Invent a fictional site.                                                                                                                                         |
+| Context running low                          | Follow section 12 immediately.                                                                                                                                   |
+| The remote already holds substantive content | Preflight failure. Stop.                                                                                                                                         |
+| Scope feels too large                        | Follow the slice order in section 11 and keep going.                                                                                                             |
 
 ---
 
@@ -101,11 +101,11 @@ first try, and finds nothing tying the project to anyone in particular.
 A static site cannot run a scheduler, hold AI keys, or orchestrate agents. No client-side
 timers, no browser-held keys. Three layers:
 
-| Layer | Where | Responsibility |
-|---|---|---|
-| Control plane | Static Astro app on GitHub Pages | Admin UI, editor, review queue, registry, calendar. Talks only to `api.github.com`. Holds no secret beyond a session-scoped token. |
-| Automation | GitHub Actions in this repo | Scheduler and agent runner. Cron, `workflow_dispatch`, `repository_dispatch`. All AI keys in Actions secrets. |
-| Content | The user's site repos, on any host | Markdown/MDX + media, committed by the automation layer or the admin. |
+| Layer         | Where                              | Responsibility                                                                                                                     |
+| ------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Control plane | Static Astro app on GitHub Pages   | Admin UI, editor, review queue, registry, calendar. Talks only to `api.github.com`. Holds no secret beyond a session-scoped token. |
+| Automation    | GitHub Actions in this repo        | Scheduler and agent runner. Cron, `workflow_dispatch`, `repository_dispatch`. All AI keys in Actions secrets.                      |
+| Content       | The user's site repos, on any host | Markdown/MDX + media, committed by the automation layer or the admin.                                                              |
 
 The admin never calls an AI provider directly. It dispatches a workflow and polls run
 status through the GitHub API.

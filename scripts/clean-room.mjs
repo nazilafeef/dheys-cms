@@ -77,6 +77,9 @@ export const ALLOWED_DOMAINS = [
 
   // Provider and host API endpoints the adapters actually call.
   'api.anthropic.com',
+  // The Co-Authored-By trailer on every commit in this repository. The history is
+  // scanned as well as the tree, so this host is unavoidable and belongs here.
+  'anthropic.com',
   'generativelanguage.googleapis.com',
   'api.openai.com',
   'api.cloudflare.com',
@@ -96,9 +99,25 @@ export const OWN_REPO = { owner: 'nazilafeef', repo: 'dheys-cms' };
  * foreign repository reference.
  */
 const GITHUB_NON_OWNER_SEGMENTS = new Set([
-  'features', 'apps', 'marketplace', 'settings', 'orgs', 'pricing', 'about', 'security',
-  'codespaces', 'sponsors', 'login', 'join', 'site', 'contact', 'enterprise', 'readme',
-  'topics', 'search', 'new',
+  'features',
+  'apps',
+  'marketplace',
+  'settings',
+  'orgs',
+  'pricing',
+  'about',
+  'security',
+  'codespaces',
+  'sponsors',
+  'login',
+  'join',
+  'site',
+  'contact',
+  'enterprise',
+  'readme',
+  'topics',
+  'search',
+  'new',
 ]);
 
 /* ------------------------------------------------------------------ *
@@ -146,8 +165,8 @@ const WWW_DOMAIN_RE = new RegExp(`(?<![\\w.@/-])(www\\.${HOST})(?![\\w-])`, 'gi'
  * `[a-z]{2,}`: it is what separates `demo-journal.example.org` from `import.meta.url`.
  */
 const KNOWN_TLDS = new Set(
+  // ISO 3166-1 alpha-2 country codes.
   (
-    // ISO 3166-1 alpha-2 country codes.
     'ac ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bm ' +
     'bn bo br bs bt bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy cz ' +
     'de dj dk dm do dz ec ee eg er es et eu fi fj fk fm fo fr ga gd ge gf gg gh gi gl ' +
@@ -184,24 +203,112 @@ const KNOWN_TLDS = new Set(
  * are not hostnames.
  */
 const NON_DOMAIN_SUFFIXES = new Set([
-  'ts', 'js', 'mjs', 'cjs', 'json', 'md', 'mdx', 'css', 'scss', 'html', 'htm', 'xml',
-  'yml', 'yaml', 'svg', 'png', 'jpg', 'jpeg', 'webp', 'avif', 'gif', 'ico', 'txt',
-  'lock', 'toml', 'sh', 'ps1', 'py', 'rb', 'go', 'rs', 'java', 'php', 'sql', 'env',
-  'map', 'test', 'spec', 'config', 'min', 'log', 'zip', 'bundle', 'tar', 'gz',
-  'woff', 'woff2', 'ttf', 'otf', 'eot', 'pdf', 'csv', 'tsv', 'bak', 'tmp', 'example',
-  'local', 'astro', 'vue', 'jsx', 'tsx', 'npmrc', 'nvmrc', 'gitignore', 'mts', 'cts',
+  'ts',
+  'js',
+  'mjs',
+  'cjs',
+  'json',
+  'md',
+  'mdx',
+  'css',
+  'scss',
+  'html',
+  'htm',
+  'xml',
+  'yml',
+  'yaml',
+  'svg',
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
+  'avif',
+  'gif',
+  'ico',
+  'txt',
+  'lock',
+  'toml',
+  'sh',
+  'ps1',
+  'py',
+  'rb',
+  'go',
+  'rs',
+  'java',
+  'php',
+  'sql',
+  'env',
+  'map',
+  'test',
+  'spec',
+  'config',
+  'min',
+  'log',
+  'zip',
+  'bundle',
+  'tar',
+  'gz',
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'eot',
+  'pdf',
+  'csv',
+  'tsv',
+  'bak',
+  'tmp',
+  'example',
+  'local',
+  'astro',
+  'vue',
+  'jsx',
+  'tsx',
+  'npmrc',
+  'nvmrc',
+  'gitignore',
+  'mts',
+  'cts',
 ]);
 
 /** Extensions whose prose may legitimately contain a bare hostname. */
 const PROSE_EXTENSIONS = new Set([
-  '.md', '.mdx', '.txt', '.yml', '.yaml', '.html', '.csv', '.example', '',
+  '.md',
+  '.mdx',
+  '.txt',
+  '.yml',
+  '.yaml',
+  '.html',
+  '.csv',
+  '.example',
+  '',
 ]);
 
 /** File extensions that are never scanned as text. */
 const BINARY_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.ico', '.pdf', '.zip', '.gz',
-  '.bundle', '.woff', '.woff2', '.ttf', '.otf', '.eot', '.mp4', '.webm', '.mp3',
-  '.wasm', '.node', '.exe', '.dll',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.avif',
+  '.ico',
+  '.pdf',
+  '.zip',
+  '.gz',
+  '.bundle',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.otf',
+  '.eot',
+  '.mp4',
+  '.webm',
+  '.mp3',
+  '.wasm',
+  '.node',
+  '.exe',
+  '.dll',
 ]);
 
 /* ------------------------------------------------------------------ *
@@ -376,11 +483,7 @@ export function scanText(text, file) {
     }
 
     // Rule 1b -- bare hostnames, where a bare hostname is plausible.
-    const bareSources = isJson
-      ? jsonValueLiterals(line)
-      : isProse
-        ? [stripInlineCode(line)]
-        : [];
+    const bareSources = isJson ? jsonValueLiterals(line) : isProse ? [stripInlineCode(line)] : [];
     for (const source of bareSources) {
       for (const match of source.matchAll(BARE_DOMAIN_RE)) {
         const host = match[1];

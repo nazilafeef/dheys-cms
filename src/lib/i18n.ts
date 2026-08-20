@@ -132,10 +132,7 @@ export function findLatinPunctuation(text: string): Array<{ char: string; index:
 /** Rewrite Latin `,` `;` `?` to their Thaana equivalents, but only in Thaana text. */
 export function normaliseThaanaPunctuation(text: string): string {
   if (!containsThaana(text)) return text;
-  return LATIN_TO_THAANA_PUNCTUATION.reduce(
-    (acc, [from, to]) => acc.split(from).join(to),
-    text,
-  );
+  return LATIN_TO_THAANA_PUNCTUATION.reduce((acc, [from, to]) => acc.split(from).join(to), text);
 }
 
 /**

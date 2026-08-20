@@ -159,17 +159,23 @@ function evaluateRule(rule: GuardrailRule, ctx: GuardrailContext): GuardrailViol
         const carriesOffer = ctx.item.affiliate.hasOffers || bodyContainsAffiliateOffer(ctx.body);
         if (!carriesOffer) return [];
         if (ctx.item.affiliate.disclosure) return [];
-        return [violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind }))];
+        return [
+          violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind })),
+        ];
       }
       if (rule.kind === 'ai') {
         const isAi = ctx.item.sourceType === 'ai' || ctx.item.sourceType === 'ai-assisted';
         if (!isAi || ctx.item.provenance) return [];
-        return [violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind }))];
+        return [
+          violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind })),
+        ];
       }
       // sponsored
       const sponsored = /\bsponsored\b/i.test(ctx.body) || ctx.item.tags.includes('sponsored');
       if (!sponsored || ctx.item.affiliate.disclosure) return [];
-      return [violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind }))];
+      return [
+        violation(t(locale, 'guardrail.requiredDisclosure', { site, item, kind: rule.kind })),
+      ];
     }
 
     case 'human-review-required': {
