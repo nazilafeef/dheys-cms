@@ -1,4 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   scanText,
   formatViolations,
@@ -282,5 +286,43 @@ describe('clean-room gate — reporting', () => {
     ].join('\n');
     const rules = new Set(scanText(text, 'docs/x.md').map((v) => v.rule));
     expect(rules).toEqual(new Set(['domain', 'repo-reference', 'credential']));
+  });
+});
+
+/**
+ * The runner's own report, as distinct from the scanner's findings.
+ *
+ * `scanCommitHistory` returns an empty array both when a history was read and found
+ * clean and when there was no history to read at all -- an unpacked release archive
+ * carries no `.git`. Those two are not the same fact, and a summary line that prints
+ * "plus commit history" either way is asserting work it did not do. Rule 3 applies to
+ * the gate's own output as much as to anything else.
+ */
+describe('clean-room gate — what the summary claims', () => {
+  const script = fileURLToPath(new URL('../../scripts/check-clean-room.mjs', import.meta.url));
+
+  const run = (env: NodeJS.ProcessEnv): { status: number | null; out: string } => {
+    const result = spawnSync(process.execPath, [script], {
+      encoding: 'utf8',
+      env: { ...process.env, ...env },
+    });
+    return { status: result.status, out: `${result.stdout}${result.stderr}` };
+  };
+
+  it('reports the number of commit messages it actually read', () => {
+    const { status, out } = run({});
+    expect(status).toBe(0);
+    expect(out).toMatch(/plus \d+ commit message\(s\)/);
+  });
+
+  it('does not claim to have read a history when there is none', () => {
+    // A nonexistent GIT_DIR is how an unpacked archive looks to git: every git call
+    // fails, so the file list comes from the filesystem walk and there is no history.
+    const { status, out } = run({ GIT_DIR: join(tmpdir(), 'dheys-no-such-git-dir') });
+    expect(status).toBe(0);
+    expect(out).toContain('no commit history here');
+    expect(out).not.toContain('commit message(s)');
+    // The walk must still have found the tree; a silent empty scan would pass too.
+    expect(out).toMatch(/OK -- ([1-9]\d{2,}) file\(s\) scanned/);
   });
 });

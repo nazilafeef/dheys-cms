@@ -71,26 +71,48 @@ function walk(dir) {
   return found;
 }
 
-/** @returns {import('./clean-room.mjs').Violation[]} */
+/**
+ * @typedef {object} HistoryScan
+ * @property {boolean} available whether a commit history was actually read
+ * @property {number} commits how many commit messages were scanned
+ * @property {import('./clean-room.mjs').Violation[]} violations
+ */
+
+/**
+ * Scan every commit message on every ref.
+ *
+ * The `available` flag exists so the summary line cannot claim work that did not happen.
+ * An unpacked release archive carries no `.git`, and an empty result there means "nothing
+ * was read", not "nothing was found". Reporting those two as the same thing is how a gate
+ * comes to certify something it never looked at.
+ *
+ * @returns {HistoryScan}
+ */
 function scanCommitHistory() {
+  let out;
   try {
-    const out = execFileSync('git', ['log', '--pretty=format:%H%x1f%B%x1e', '--all'], {
+    out = execFileSync('git', ['log', '--pretty=format:%H%x1f%B%x1e', '--all'], {
       cwd: ROOT,
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
-    const violations = [];
-    for (const record of out.split('\x1e')) {
-      const [sha, body] = record.split('\x1f');
-      if (!sha || !body) continue;
-      violations.push(
-        ...scanText(body, `commit ${sha.trim().slice(0, 10)}`).map((v) => ({ ...v, line: 0 })),
-      );
-    }
-    return violations;
   } catch {
-    return [];
+    return { available: false, commits: 0, violations: [] };
   }
+
+  /** @type {import('./clean-room.mjs').Violation[]} */
+  const violations = [];
+  let commits = 0;
+  for (const record of out.split('\x1e')) {
+    const [sha, body] = record.split('\x1f');
+    if (!sha || !body) continue;
+    commits += 1;
+    violations.push(
+      ...scanText(body, `commit ${sha.trim().slice(0, 10)}`).map((v) => ({ ...v, line: 0 })),
+    );
+  }
+  return { available: true, commits, violations };
 }
 
 function main() {
@@ -114,8 +136,11 @@ function main() {
     violations.push(...scanText(text, file));
   }
 
+  /** @type {HistoryScan} */
+  let history = { available: false, commits: 0, violations: [] };
   if (scanHistory && !stagedOnly) {
-    violations.push(...scanCommitHistory());
+    history = scanCommitHistory();
+    violations.push(...history.violations);
   }
 
   if (violations.length > 0) {
@@ -128,9 +153,16 @@ function main() {
     process.exit(1);
   }
 
-  console.log(
-    `clean-room: OK -- ${scanned} file(s) scanned${scanHistory && !stagedOnly ? ' plus commit history' : ''}, no violations.`,
-  );
+  // Say what was actually examined. Printing "plus commit history" unconditionally would
+  // be a claim rather than a report: an unpacked release archive has no history to read.
+  let historyNote = '';
+  if (scanHistory && !stagedOnly) {
+    historyNote = history.available
+      ? ` plus ${history.commits} commit message(s)`
+      : ' (no commit history here -- not a git checkout)';
+  }
+
+  console.log(`clean-room: OK -- ${scanned} file(s) scanned${historyNote}, no violations.`);
 }
 
 main();
