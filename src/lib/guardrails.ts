@@ -225,6 +225,29 @@ export function evaluateGuardrails(
   return rules.flatMap((rule) => evaluateRule(rule, ctx));
 }
 
+/**
+ * Rules that can only be judged at publish time.
+ *
+ * `human-review-required` is satisfied by a person approving the item — so evaluating it
+ * *before* that decision is circular: the reviewer cannot approve because they have not
+ * yet approved. Judging it in the review queue disabled the approve button permanently on
+ * every site carrying the rule.
+ *
+ * It is not weakened, only deferred. The scheduler evaluates the full set at publish time,
+ * where the approval either exists or does not.
+ */
+export const PUBLISH_TIME_ONLY: readonly GuardrailType[] = ['human-review-required'];
+
+/**
+ * The rules worth showing a reviewer while they decide.
+ *
+ * Everything a person could act on now — a missing disclosure, a short body, an absent
+ * translation — and nothing that only their own decision can resolve.
+ */
+export function reviewTimeRules(rules: readonly GuardrailRule[]): GuardrailRule[] {
+  return rules.filter((rule) => !PUBLISH_TIME_ONLY.includes(rule.type));
+}
+
 /** An item may publish only when nothing blocks it. */
 export function mayPublish(
   rules: readonly GuardrailRule[],

@@ -1,6 +1,6 @@
 ---
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 /**
  * The brand mark.
@@ -24,7 +24,16 @@ export interface Props {
 const { theme, label } = Astro.props;
 
 const LOGO_PATH = 'src/assets/brand/dheys-logo.svg';
-const absolute = fileURLToPath(new URL(`../assets/brand/dheys-logo.svg`, import.meta.url));
+
+/*
+ * Resolved from the project root, not from `import.meta.url`.
+ *
+ * In a build, this component's module lives in the output bundle, so a URL relative to it
+ * points somewhere that has no `src/` beside it. The file was silently "not found" on
+ * every built page and the wordmark fallback fired even though the artwork was present --
+ * caught when the e2e run filled its log with the missing-logo warning.
+ */
+const absolute = join(process.cwd(), LOGO_PATH);
 
 let inlineSvg: string | undefined;
 

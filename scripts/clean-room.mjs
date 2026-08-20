@@ -109,6 +109,16 @@ export const ALLOWED_DOMAINS = [
 export const OWN_REPO = { owner: 'nazilafeef', repo: 'dheys-cms' };
 
 /**
+ * Fictional repository owners, permitted for the same reason `example.com` is.
+ *
+ * Demo content, the example registry and the tests all need to name a repository, and the
+ * brief's answer is that they name an invented one. `example-org` is that owner and it
+ * belongs to nobody -- if it ever becomes a real GitHub account, this entry is the single
+ * place to reconsider.
+ */
+const ALLOWED_REPO_OWNERS = new Set(['example-org']);
+
+/**
  * `github.com/<segment>/...` paths whose first segment is a GitHub product surface
  * rather than an account. Without this, `github.com/features/actions` reads as a
  * foreign repository reference.
@@ -530,13 +540,21 @@ export function scanText(text, file) {
       reportDomain(host);
     }
 
-    // Rule 2 -- foreign GitHub repositories.
-    const repoRe = /github\.com\/([A-Za-z0-9][A-Za-z0-9-_.]*)\/([A-Za-z0-9][A-Za-z0-9-_.]*)/g;
+    /*
+     * Rule 2 -- foreign GitHub repositories.
+     *
+     * `(?:repos\/)?` matters: the REST API addresses a repository as
+     * `api.github.com/repos/{owner}/{repo}`, and without it the owner reads as the literal
+     * "repos" and the real owner is never checked at all.
+     */
+    const repoRe =
+      /github\.com\/(?:repos\/)?([A-Za-z0-9][A-Za-z0-9-_.]*)\/([A-Za-z0-9][A-Za-z0-9-_.]*)/g;
     for (const match of line.matchAll(repoRe)) {
       const owner = match[1];
       const repoRaw = match[2];
       if (!owner || !repoRaw) continue;
       if (GITHUB_NON_OWNER_SEGMENTS.has(owner.toLowerCase())) continue;
+      if (ALLOWED_REPO_OWNERS.has(owner.toLowerCase())) continue;
       const repo = repoRaw.replace(/\.git$/, '');
       if (owner === OWN_REPO.owner && repo === OWN_REPO.repo) continue;
       violations.push({

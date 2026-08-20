@@ -34,7 +34,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "pnpm build:e2e && playwright test",
     "check:clean-room": "node scripts/check-clean-room.mjs",
     "check:links": "node scripts/check-links.mjs",
     "lighthouse": "node scripts/lighthouse.mjs",
@@ -42,7 +42,8 @@
     "link-font": "node scripts/link-font.mjs",
     "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:clean-room && pnpm build && pnpm check:links",
     "scheduler:tick": "tsx scripts/scheduler-tick.ts",
-    "agent:run": "tsx scripts/agent-run.ts"
+    "agent:run": "tsx scripts/agent-run.ts",
+    "build:e2e": "node scripts/build-e2e.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

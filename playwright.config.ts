@@ -26,9 +26,19 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
+    /*
+     * Preview only. The build is a separate step (`pnpm build:e2e`, run by the
+     * `pretest:e2e` hook) rather than part of this command.
+     *
+     * Building here races the run: `astro build` empties `dist/` before it refills it, and
+     * Playwright starts as soon as the preview answers. Doing it that way produced 26
+     * failures against a half-written directory, all of them looking like application bugs.
+     */
     command: `pnpm exec astro preview --port ${PORT} --host 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}${prefix}/`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse a server locally either: a preview left over from another run serves a
+    // different build, and the failures that produces are extremely misleading.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

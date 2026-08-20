@@ -164,6 +164,23 @@ describe('clean-room gate — foreign repository references', () => {
     expect(scanText(text, 'README.md').filter((v) => v.rule === 'repo-reference')).toEqual([]);
   });
 
+  it('reads the REST API form, where the owner sits after /repos/', () => {
+    // Without this the owner parses as the literal "repos" and the real one goes unchecked.
+    const foreign = plant('someone', '-else', '/their', '-project');
+    const violations = scanText(
+      `https://api.github.com/repos/${foreign}/contents/a.md`,
+      'src/lib/x.ts',
+    ).filter((v) => v.rule === 'repo-reference');
+    expect(violations.map((v) => v.match)).toEqual([foreign]);
+  });
+
+  it('allows the fictional owner that demo content and tests use', () => {
+    const text = 'https://api.github.com/repos/example-org/example-news/contents/a.md';
+    expect(
+      scanText(text, 'tests/unit/x.test.ts').filter((v) => v.rule === 'repo-reference'),
+    ).toEqual([]);
+  });
+
   it('does not read GitHub product URLs as repository references', () => {
     const text = 'https://github.com/features/actions and https://github.com/settings/tokens';
     expect(scanText(text, 'docs/x.md').filter((v) => v.rule === 'repo-reference')).toEqual([]);

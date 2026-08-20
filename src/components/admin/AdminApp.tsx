@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { GitHubClient, GitHubError } from '@lib/github';
+import ContentView from './ContentView';
+import ReviewQueue from './ReviewQueue';
 import {
   clearSession,
   looksLikeToken,
@@ -16,7 +18,7 @@ import {
   type SiteDefinition,
 } from '@lib/site-registry';
 import { summariseSpend, format as formatUsd, type CostLedgerEntry } from '@lib/cost';
-import { translator, type LocaleCode } from '@lib/i18n';
+import { translator, LOCALES, type LocaleCode } from '@lib/i18n';
 
 /**
  * The admin.
@@ -30,8 +32,8 @@ import { translator, type LocaleCode } from '@lib/i18n';
  *  - It talks to `api.github.com` and to nothing else. There is no backend to talk to.
  *  - It never touches an AI provider. Commissioning dispatches a workflow and polls the
  *    run; the keys live in Actions secrets where a browser cannot reach them.
- *  - No `unsafe-eval`: no runtime schema compiler, no template evaluator. Validation is
- *    done by the same Zod schemas the build uses, which are compiled ahead of time.
+ *  - No `unsafe-eval`: no runtime schema compiler, no template evaluator. Validation uses
+ *    the same Zod schemas the build uses, compiled ahead of time.
  */
 
 type View = 'dashboard' | 'queue' | 'content' | 'runs' | 'sites' | 'settings';
@@ -54,6 +56,8 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
   const [tokenInput, setTokenInput] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [view, setView] = useState<View>('dashboard');
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const [contentLocale, setContentLocale] = useState<LocaleCode | null>(null);
 
   useEffect(() => {
     setSession(readSession());
@@ -133,12 +137,19 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
   }
 
   const sites = registry ? sitesVisibleTo(registry, session.login) : [];
+  const activeSite = sites.find((site) => site.id === siteId) ?? sites[0];
+  const activeLocale =
+    contentLocale && activeSite?.locales.includes(contentLocale)
+      ? contentLocale
+      : (activeSite?.defaultLocale ?? locale);
 
   return (
     <div class="admin">
       <header class="admin__bar">
         <strong class="admin__title">{t('admin.title')}</strong>
-        <span class="admin__who">{t('admin.connectedAs', { login: session.login })}</span>
+        <span class="admin__who" data-testid="connected-as">
+          {t('admin.connectedAs', { login: session.login })}
+        </span>
         <button type="button" class="admin__link-button" onClick={disconnect}>
           {t('admin.disconnect')}
         </button>
@@ -160,6 +171,7 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
             key={id}
             class={view === id ? 'admin__tab admin__tab--active' : 'admin__tab'}
             aria-current={view === id ? 'page' : undefined}
+            data-testid={`tab-${id}`}
             onClick={() => setView(id)}
           >
             {label}
@@ -167,11 +179,68 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
         ))}
       </nav>
 
+      {activeSite && (view === 'content' || view === 'queue') && (
+        <div class="admin__scope">
+          <label for="scope-site">{t('admin.common.site')}</label>
+          <select
+            id="scope-site"
+            value={activeSite.id}
+            onChange={(event) => setSiteId((event.currentTarget as HTMLSelectElement).value)}
+          >
+            {sites.map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.name}
+              </option>
+            ))}
+          </select>
+
+          {view === 'content' && (
+            <>
+              <label for="scope-locale">{t('admin.common.locale')}</label>
+              <select
+                id="scope-locale"
+                value={activeLocale}
+                onChange={(event) =>
+                  setContentLocale((event.currentTarget as HTMLSelectElement).value as LocaleCode)
+                }
+              >
+                {activeSite.locales.map((code) => (
+                  <option key={code} value={code}>
+                    {LOCALES[code].name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+      )}
+
       <main class="admin__body">
         {!registry && <NoRegistry t={t} />}
+
         {registry && view === 'dashboard' && <Dashboard t={t} registry={registry} sites={sites} />}
+
         {registry && view === 'sites' && <Sites t={t} sites={sites} />}
-        {registry && view !== 'dashboard' && view !== 'sites' && <NotYetWired t={t} view={view} />}
+
+        {registry && view === 'queue' && activeSite && (
+          <ReviewQueue client={client} site={activeSite} uiLocale={locale} login={session.login} />
+        )}
+
+        {registry && view === 'content' && activeSite && (
+          <ContentView
+            client={client}
+            site={activeSite}
+            locale={activeLocale}
+            uiLocale={locale}
+            login={session.login}
+          />
+        )}
+
+        {registry && (view === 'runs' || view === 'settings') && <NotYetWired t={t} view={view} />}
+
+        {registry && sites.length === 0 && view !== 'dashboard' && (
+          <p class="admin__panel">{t('admin.dashboard.noSites')}</p>
+        )}
       </main>
     </div>
   );
@@ -211,7 +280,7 @@ function ConnectScreen(props: {
           placeholder={t('admin.tokenPlaceholder')}
           onInput={(event) => onTokenInput((event.currentTarget as HTMLInputElement).value)}
         />
-        <button type="submit" disabled={status.kind === 'working'}>
+        <button type="submit" disabled={status.kind === 'working'} data-testid="connect">
           {status.kind === 'working' ? t('admin.connecting') : t('admin.connect')}
         </button>
       </form>
@@ -219,7 +288,11 @@ function ConnectScreen(props: {
       <p class="admin__notice">{t('admin.sessionOnlyNotice')}</p>
 
       {status.message && (
-        <p class={status.kind === 'error' ? 'admin__error' : 'admin__ok'} role="status">
+        <p
+          class={status.kind === 'error' ? 'admin__error' : 'admin__ok'}
+          role="status"
+          data-testid="connect-status"
+        >
           {status.message}
         </p>
       )}
@@ -247,8 +320,8 @@ function Dashboard(props: {
 }): JSX.Element {
   const { t, registry, sites } = props;
 
-  // No runs have been recorded in this browser; the ledger is assembled by the runner and
-  // read from the registry storage. Showing zeroes with the caps is honest and useful.
+  // Runs are recorded by the runner into the control repository, not by this browser.
+  // Showing zeroes against the real caps is honest and still useful.
   const ledger: CostLedgerEntry[] = [];
   const spend = summariseSpend(ledger, capsFrom(registry), new Date());
 
@@ -259,22 +332,20 @@ function Dashboard(props: {
       <dl class="admin__stats">
         <div>
           <dt>{t('admin.nav.sites')}</dt>
-          <dd>{sites.length}</dd>
+          <dd data-testid="site-count">{sites.length}</dd>
         </div>
         <div>
           <dt>{t('admin.dashboard.spendThisMonth')}</dt>
           <dd>{formatUsd(spend.globalSpentUsd)}</dd>
         </div>
-        <div>
-          <dt>
-            {t('admin.dashboard.capRemaining', {
-              amount: formatUsd(spend.globalRemainingUsd),
-              cap: formatUsd(spend.globalCapUsd),
-            })}
-          </dt>
-          <dd />
-        </div>
       </dl>
+
+      <p class="meta">
+        {t('admin.dashboard.capRemaining', {
+          amount: formatUsd(spend.globalRemainingUsd),
+          cap: formatUsd(spend.globalCapUsd),
+        })}
+      </p>
 
       {sites.length === 0 && <p>{t('admin.dashboard.noSites')}</p>}
     </div>
@@ -314,8 +385,8 @@ function NotYetWired({ t, view }: { t: Translate; view: View }): JSX.Element {
     <div class="admin__panel">
       <h2>{t(`admin.nav.${view}`)}</h2>
       <p>
-        This screen reads and writes through the GitHub API using the connected token. It is not
-        wired up in this build — see <code>release/REPORT.md</code> for what is and is not built.
+        This screen is not wired up in this build. See <code>release/REPORT.md</code> for exactly
+        what is and is not built.
       </p>
     </div>
   );
