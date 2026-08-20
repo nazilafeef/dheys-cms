@@ -201,3 +201,26 @@ merely happened.
     `z.coerce.date()` narrows the schema's input type to `Date`, so a fixture typed from the
     schema could not express the string date an unvalidated item actually arrives with. The
     fixtures are raw input and are now typed as raw input.
+
+## Slice 18 — packaging and the report
+
+46. **The release archive is verified inside the working directory, in a gitignored path.**
+    The brief forbids creating working copies anywhere else on disk, so the zip is unpacked
+    to `.tmp/` rather than to a system temp directory. The consequence has to be stated: git
+    resolves upward, so any git-aware check run in there sees the enclosing repository. The
+    file scan is unaffected — `git ls-files` returns nothing in an ignored subdirectory, so
+    the clean-room gate falls through to its filesystem walk and covers exactly the archive's
+    own files — but the commit-history scan reads this repository's history, because an
+    unpacked archive has none. That is recorded in the report rather than papered over.
+47. **The clean-room gate distinguishes "history clean" from "no history".** It returned an
+    empty violation list for both and printed "plus commit history" either way, so run against
+    an unpacked archive it would have certified a history it never opened. It now reports the
+    number of commit messages actually read, or says there is no history to read. Two tests
+    cover it; the negative one was confirmed to fail when the distinction is removed. Found
+    while verifying the release archive — which is the argument for verifying the artefact
+    rather than the tree it came from.
+48. **`.tmp/` belongs in every ignore list, not just `.gitignore`.** It was ignored by git and
+    skipped by the clean-room gate, but ESLint and Prettier both walked into it, so an
+    unpacked archive was linted as project source and reported 205 errors in files that are
+    not this project's to lint. A directory that is invisible to one tool and not another is
+    a trap for whoever hits it next.
