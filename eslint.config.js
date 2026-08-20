@@ -70,7 +70,17 @@ export default tseslint.config(
     // Build/CI scripts are Node CLIs: they talk to the operator through stdout.
     files: ['scripts/**/*.mjs', 'scripts/**/*.js', 'scripts/**/*.ts'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly', URL: 'readonly', fetch: 'readonly' },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        Buffer: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+      },
     },
     rules: {
       'no-console': 'off',
