@@ -269,7 +269,9 @@ guessed cheap. `docs/automation.md` covers the accounting.
 to the process that produced this, and inventing one would be worse than the gap.
 
 **Time.** The build ran across several sessions ending 2026-08-21. Measured gate timings, from
-the appendix log:
+the appendix log. The install figure assumes a warm pnpm store; a genuinely cold install that
+has to fetch every package took 5 m 50 s on a later run of the same archive, and dominates
+everything else here:
 
 | Stage                              | Time    |
 | ---------------------------------- | ------- |
@@ -282,7 +284,7 @@ the appendix log:
 | `pnpm check:links`                 | < 1 s   |
 | `pnpm test:e2e` (44)               | 22 s    |
 | `pnpm lighthouse` (5 pages)        | 44 s    |
-| **Full gate, cold, from an archive** | **1 m 51 s** |
+| **Full gate, from an unpacked archive** | **1 m 51 s** |
 
 A contributor's inner loop is the first five rows — about 40 seconds.
 
