@@ -81,6 +81,18 @@ describe('clean-room gate — where bare hostnames are read', () => {
     expect(scanText(text, 'docs/automation.md')).toEqual([]);
   });
 
+  it('does not read a GitHub Actions expression as a hostname', () => {
+    // `.site` is a real gTLD, and `${{ inputs.site }}` is a member access in YAML clothing.
+    const text = 'group: dheys-agent-${{ inputs.site || github.event.client_payload.site }}';
+    expect(scanText(text, '.github/workflows/agent-run.yml')).toEqual([]);
+  });
+
+  it('still reads a real URL inside an Actions expression', () => {
+    const host = plant('operator', '-site', '.com');
+    const text = `url: \${{ vars.HOOK || 'https://${host}/deploy' }}`;
+    expect(scanText(text, '.github/workflows/x.yml').map((v) => v.match)).toEqual([host]);
+  });
+
   it('does not read i18n message keys in JSON as hostnames', () => {
     const text = [
       '{',

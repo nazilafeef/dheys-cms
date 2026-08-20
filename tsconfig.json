@@ -25,6 +25,6 @@
       "@layouts/*": ["src/layouts/*"]
     }
   },
-  "include": [".astro/types.d.ts", "src/**/*", "tests/**/*", "*.config.ts", "*.config.mts"],
-  "exclude": ["dist", "node_modules", "scripts/**/*"]
+  "include": [".astro/types.d.ts", "src/**/*", "tests/**/*", "scripts/**/*.ts", "*.config.ts"],
+  "exclude": ["dist", "node_modules"]
 }

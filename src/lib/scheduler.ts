@@ -240,6 +240,12 @@ export interface QueueEntry {
   /** Guardrail verdict, computed by the caller so this module stays pure. */
   readonly guardrailsPassed: boolean;
   readonly guardrailMessages?: readonly string[];
+  /**
+   * Path of the file this item was read from, when it came off disk or out of a
+   * repository. Carried so the commit step does not have to re-derive it and risk
+   * disagreeing with where the file actually is.
+   */
+  readonly path?: string;
 }
 
 export type DecisionAction =

@@ -1,0 +1,131 @@
+name: Agent run
+
+# The admin never calls an AI provider. It dispatches this workflow and polls the run
+# through the GitHub API, which is what keeps every provider key on this side of the
+# boundary -- readable only inside a runner, never reachable from a browser.
+#
+# Long generations belong here for the same reason they do not belong in a request: a
+# workflow can run for twenty minutes without anything timing out underneath it.
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site id from the registry'
+        required: true
+        type: string
+      job:
+        description: 'Job type'
+        required: true
+        type: choice
+        options:
+          - research
+          - write
+          - rewrite
+          - translate
+          - seo-optimise
+          - fact-check
+          - image-alt
+      brief:
+        description: 'What to write, or the note driving a rewrite'
+        required: true
+        type: string
+      locale:
+        description: 'Locale to write in (defaults to the site default)'
+        required: false
+        type: string
+      target_locale:
+        description: 'For translate jobs'
+        required: false
+        type: string
+      categories:
+        description: 'Comma-separated categories the agent may choose from'
+        required: false
+        type: string
+      max_cost:
+        description: 'Ceiling for this run, in USD'
+        required: false
+        default: '2'
+        type: string
+      override_cap:
+        description: 'Dispatch even though the monthly cap is reached'
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: 'Check cost and provider, call nothing'
+        required: false
+        default: false
+        type: boolean
+
+  repository_dispatch:
+    types: [dheys-agent-run]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Serialised per site. Two agents writing the same site at once would race on the cost
+  # ledger and could both pass a cap check that only one of them should have.
+  group: dheys-agent-${{ inputs.site || github.event.client_payload.site }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: ${{ inputs.job || github.event.client_payload.job }} for ${{ inputs.site || github.event.client_payload.site }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run the job
+        env:
+          GITHUB_TOKEN: ${{ secrets.DHEYS_SITE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+          SITE_REGISTRY_JSON: ${{ secrets.SITE_REGISTRY_JSON }}
+          SITE_REGISTRY_GIST: ${{ vars.SITE_REGISTRY_GIST }}
+          SITE_REGISTRY_REPO: ${{ vars.SITE_REGISTRY_REPO }}
+
+          # Every provider is opt-in. An unset key means that provider is simply not
+          # available in this runner, and `resolveProvider` says so by name rather than
+          # quietly falling back to a different model.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_COMPATIBLE_BASE_URL: ${{ vars.OPENAI_COMPATIBLE_BASE_URL }}
+          OPENAI_COMPATIBLE_API_KEY: ${{ secrets.OPENAI_COMPATIBLE_API_KEY }}
+          OPENAI_COMPATIBLE_MODEL: ${{ vars.OPENAI_COMPATIBLE_MODEL }}
+          EXTERNAL_AGENT_URL: ${{ secrets.EXTERNAL_AGENT_URL }}
+          EXTERNAL_AGENT_TOKEN: ${{ secrets.EXTERNAL_AGENT_TOKEN }}
+
+          SITE: ${{ inputs.site || github.event.client_payload.site }}
+          JOB: ${{ inputs.job || github.event.client_payload.job }}
+          BRIEF: ${{ inputs.brief || github.event.client_payload.brief }}
+          LOCALE: ${{ inputs.locale || github.event.client_payload.locale }}
+          TARGET_LOCALE: ${{ inputs.target_locale || github.event.client_payload.target_locale }}
+          CATEGORIES: ${{ inputs.categories || github.event.client_payload.categories }}
+          MAX_COST: ${{ inputs.max_cost || github.event.client_payload.max_cost || '2' }}
+          OVERRIDE: ${{ inputs.override_cap || github.event.client_payload.override_cap }}
+          DRY_RUN: ${{ inputs.dry_run || github.event.client_payload.dry_run }}
+        run: |
+          # Arguments are assembled in the shell rather than interpolated into the command
+          # line by Actions: a brief is free text from an operator, and interpolating it
+          # directly would make every commission a shell-injection vector.
+          set -euo pipefail
+          ARGS=(--site "$SITE" --job "$JOB" --brief "$BRIEF" --max-cost "$MAX_COST")
+          [ -n "${LOCALE:-}" ] && ARGS+=(--locale "$LOCALE")
+          [ -n "${TARGET_LOCALE:-}" ] && ARGS+=(--target-locale "$TARGET_LOCALE")
+          [ -n "${CATEGORIES:-}" ] && ARGS+=(--categories "$CATEGORIES")
+          [ "${OVERRIDE:-false}" = "true" ] && ARGS+=(--override true)
+          [ "${DRY_RUN:-false}" = "true" ] && ARGS+=(--dry-run)
+          pnpm agent:run "${ARGS[@]}"

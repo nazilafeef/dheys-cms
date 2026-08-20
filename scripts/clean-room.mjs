@@ -432,9 +432,18 @@ function stringLiterals(line) {
   return found;
 }
 
-/** Strip inline code spans so `schedule.at` in prose is not read as a hostname. */
+/**
+ * Strip the parts of a prose line that are code rather than prose.
+ *
+ *  - Markdown inline spans, so `schedule.at` is not read as a hostname.
+ *  - GitHub Actions expressions, so `${{ inputs.site }}` is not either. `.site` is a real
+ *    gTLD and an Actions expression is a member access wearing YAML's clothes.
+ *
+ * The anchored rule still runs over the whole untouched line, so a real URL inside either
+ * construct is still caught.
+ */
 function stripInlineCode(line) {
-  return line.replace(/`[^`]*`/g, ' ');
+  return line.replace(/`[^`]*`/g, ' ').replace(/\$\{\{[^}]*\}\}/g, ' ');
 }
 
 /**

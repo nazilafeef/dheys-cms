@@ -1,0 +1,76 @@
+name: Scheduler
+
+# Every fifteen minutes. Two things follow from that and are handled in the runner rather
+# than assumed away here:
+#
+#   - GitHub delays scheduled workflows under load, sometimes by many minutes, and
+#     occasionally drops a firing entirely. Nothing may assume exact-minute execution.
+#   - A tick that finds a slot already passed publishes it late rather than skipping it.
+#
+# `workflow_dispatch` is the manual path, and `repository_dispatch` lets the admin ask for
+# an immediate tick after an approval without waiting for the cron.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Decide and report, but commit nothing'
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [dheys-scheduler-tick]
+
+# Only `contents: read` on this repository. The token that writes to *connected* site
+# repositories is a separate, operator-supplied secret with its own scope -- the workflow
+# token cannot reach another repository, and that is the intended boundary.
+permissions:
+  contents: read
+
+concurrency:
+  # Never two ticks at once. Ticks are idempotent, but two concurrent ones would both read
+  # the same queue before either committed, and idempotency cannot save you from that.
+  group: dheys-scheduler
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    name: Publish what is due
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tick
+        env:
+          # Writes to connected site repositories, so this is NOT the workflow token.
+          GITHUB_TOKEN: ${{ secrets.DHEYS_SITE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+          # Wherever the operator put the registry. Exactly one of these is set.
+          SITE_REGISTRY_JSON: ${{ secrets.SITE_REGISTRY_JSON }}
+          SITE_REGISTRY_GIST: ${{ vars.SITE_REGISTRY_GIST }}
+          SITE_REGISTRY_REPO: ${{ vars.SITE_REGISTRY_REPO }}
+
+          # Deploy adapter credentials. The registry names the variables; the values live
+          # here and are readable only inside this runner.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm scheduler:tick --dry-run
+          else
+            pnpm scheduler:tick
+          fi
