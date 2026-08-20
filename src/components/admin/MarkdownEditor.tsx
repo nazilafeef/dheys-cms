@@ -254,21 +254,25 @@ export function CharacterCount({
  * Warn before leaving with unsaved work.
  *
  * `beforeunload` only covers closing the tab or navigating away; the admin's own view
- * switching is guarded separately, in the component that owns the dirty flag.
+ * switching is guarded separately, in the component that owns the dirty flag -- and that
+ * one *can* show our own wording, which is why the translated string still exists.
+ *
+ * No message is taken here on purpose. Browsers show their own fixed wording and ignore
+ * anything a page supplies, so accepting a string would promise something we cannot
+ * deliver.
  */
-export function useUnsavedChangesGuard(dirty: boolean, message: string): void {
+export function useUnsavedChangesGuard(dirty: boolean): void {
   useEffect(() => {
     if (!dirty) return undefined;
 
-    const handler = (event: BeforeUnloadEvent): string => {
+    // `preventDefault()` is the whole signal now. Browsers show their own wording and
+    // ignore any custom string, and `returnValue` is deprecated, so setting it buys
+    // nothing but a warning.
+    const handler = (event: BeforeUnloadEvent): void => {
       event.preventDefault();
-      // Browsers ignore the custom string now and show their own wording; it is still set
-      // because a few older ones do not.
-      event.returnValue = message;
-      return message;
     };
 
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [dirty, message]);
+  }, [dirty]);
 }

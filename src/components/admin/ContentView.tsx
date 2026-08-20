@@ -234,7 +234,7 @@ function Editor({
   const [errors, setErrors] = useState<readonly FieldError[]>([]);
 
   const dirty = item !== file.item || body !== file.body;
-  useUnsavedChangesGuard(dirty, t('admin.editor.unsavedWarning'));
+  useUnsavedChangesGuard(dirty);
 
   const takenSlugs = useMemo(
     () =>

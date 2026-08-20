@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
-import type { JSX } from 'preact';
+import type { JSX, TargetedSubmitEvent } from 'preact';
 import { GitHubClient, GitHubError } from '@lib/github';
 import ContentView from './ContentView';
 import ReviewQueue from './ReviewQueue';
@@ -79,7 +79,7 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
   );
 
   const connect = useCallback(
-    async (event: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    async (event: TargetedSubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
       const token = tokenInput.trim();
 
@@ -255,7 +255,7 @@ function ConnectScreen(props: {
   status: Status;
   tokenInput: string;
   onTokenInput: (value: string) => void;
-  onSubmit: (event: JSX.TargetedEvent<HTMLFormElement, Event>) => void;
+  onSubmit: (event: TargetedSubmitEvent<HTMLFormElement>) => void;
 }): JSX.Element {
   const { t, status, tokenInput, onTokenInput, onSubmit } = props;
 

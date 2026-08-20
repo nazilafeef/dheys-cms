@@ -209,30 +209,23 @@ describe('OpenAI-shaped providers', () => {
     expect(outcome.accepted).toBe(true);
   });
 
-  it('marks the item as AI-authored regardless of what the model said', () => {
+  it('marks the item as AI-authored regardless of what the model said', async () => {
     // A provider's output is AI-authored by definition; letting it claim otherwise would
     // defeat the entire provenance chain.
-    return openAiProvider
-      .run(
-        request(),
-        ctx(
-          scriptedFetch([
-            {
-              body: {
-                choices: [
-                  { message: { content: JSON.stringify({ ...GOOD_ITEM, sourceType: 'human' }) } },
-                ],
-                usage: { prompt_tokens: 10, completion_tokens: 10 },
-              },
-            },
-          ]).impl,
-          { OPENAI_API_KEY: 'k' },
-        ),
-      )
-      .then((result) => {
-        const item = result.item as Record<string, unknown>;
-        expect(item['sourceType']).toBe('ai');
-      });
+    const { impl } = scriptedFetch([
+      {
+        body: {
+          choices: [
+            { message: { content: JSON.stringify({ ...GOOD_ITEM, sourceType: 'human' }) } },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 10 },
+        },
+      },
+    ]);
+
+    const result = await openAiProvider.run(request(), ctx(impl, { OPENAI_API_KEY: 'k' }));
+    const item = result.item as Record<string, unknown>;
+    expect(item['sourceType']).toBe('ai');
   });
 
   it('strips a Markdown fence some models add around JSON', async () => {
