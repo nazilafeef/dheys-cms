@@ -120,6 +120,27 @@ export const OWN_REPO = { owner: 'nazilafeef', repo: 'dheys-cms' };
 const ALLOWED_REPO_OWNERS = new Set(['example-org']);
 
 /**
+ * Publishers of GitHub Actions this project actually uses.
+ *
+ * `uses: actions/checkout@v4` never tripped rule 2, because the rule needs a full URL
+ * carrying the host, and a `uses:` line has no host. Dependabot's commit *messages*
+ * do have one -- it quotes release notes as links -- so merging its pull requests put
+ * fifteen `github.com/actions/...` URLs into the history and the gate failed on commits no
+ * human wrote.
+ *
+ * Exempting them is right rather than convenient. Rule 2 exists so nothing ties this
+ * repository to *the operator's* other repositories and sites; `actions/checkout` is a
+ * toolchain dependency already declared in five committed workflow files, in the same way
+ * `github.com` itself is already in ALLOWED_DOMAINS. The alternative -- rewriting or
+ * refusing bot commit messages -- would trade a real property for a cosmetic one.
+ *
+ * Kept deliberately narrow: publishers whose actions appear in `.github/workflows/`, and
+ * nothing else. Adding an owner here is the same decision as adding a domain above, and
+ * this is the single place to make it.
+ */
+const ALLOWED_ACTION_OWNERS = new Set(['actions', 'pnpm', 'github', 'dependabot']);
+
+/**
  * `github.com/<segment>/...` paths whose first segment is a GitHub product surface
  * rather than an account. Without this, `github.com/features/actions` reads as a
  * foreign repository reference.
@@ -575,6 +596,7 @@ export function scanText(text, file) {
       if (!owner || !repoRaw) continue;
       if (GITHUB_NON_OWNER_SEGMENTS.has(owner.toLowerCase())) continue;
       if (ALLOWED_REPO_OWNERS.has(owner.toLowerCase())) continue;
+      if (ALLOWED_ACTION_OWNERS.has(owner.toLowerCase())) continue;
       const repo = repoRaw.replace(/\.git$/, '');
       if (owner === OWN_REPO.owner && repo === OWN_REPO.repo) continue;
       violations.push({

@@ -14,6 +14,7 @@ import {
 } from './types';
 import { estimateCost } from '../cost';
 import type { AgentJobRequest, AgentJobResult } from '../job-contract';
+import { envOr } from '../runner-env';
 
 /**
  * Anthropic provider.
@@ -45,7 +46,7 @@ export const anthropicProvider: AgentProvider = {
     const apiKey = ctx.env['ANTHROPIC_API_KEY'];
     if (!apiKey) throw new ProviderNotConfiguredError('anthropic', this.requiredEnv);
 
-    const model = ctx.env['ANTHROPIC_MODEL'] ?? DEFAULT_MODEL;
+    const model = envOr(ctx.env, 'ANTHROPIC_MODEL', DEFAULT_MODEL);
     const client = new Anthropic({ apiKey, fetch: ctx.fetchImpl as typeof fetch });
 
     try {

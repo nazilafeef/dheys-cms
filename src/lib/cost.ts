@@ -96,7 +96,25 @@ export interface CostEstimate {
 }
 
 export function estimateCost(input: EstimateInput): CostEstimate {
-  const table = input.rates ?? DEFAULT_MODEL_RATES;
+  /*
+   * Per-site rates *override* the shipped table; they do not replace it.
+   *
+   * This was `input.rates ?? DEFAULT_MODEL_RATES`, and the site schema defaults
+   * `agents.modelRates` to `{}`. An empty object is not nullish, so `??` kept it — and every
+   * site that had not written its own rate table, which is every site by default, priced
+   * every model at its job ceiling. A live run against Claude Opus 5 reported "model has no
+   * known rate" and estimated the full $1.00 ceiling for what should have cost a fraction of
+   * a cent.
+   *
+   * Not a cosmetic error: the monthly cap is enforced against these estimates, so a $25 cap
+   * admitted 25 jobs regardless of what they actually cost, and the ledger's relationship to
+   * reality was decided by a `??`.
+   *
+   * Merging keeps all three intended behaviours — shipped models price correctly, a site can
+   * override any rate it disagrees with, and a genuinely unknown model still falls through to
+   * `fallbackUsd` (the job ceiling) rather than being treated as free.
+   */
+  const table: Readonly<Record<string, ModelRate>> = { ...DEFAULT_MODEL_RATES, ...input.rates };
   const rate = table[input.model];
   if (!rate) {
     return {

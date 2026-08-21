@@ -213,6 +213,29 @@ describe('clean-room gate — foreign repository references', () => {
     ).toEqual([]);
   });
 
+  it('allows a publisher of an action this project uses', () => {
+    /*
+     * Rule 2 is about the *operator's* repositories, not the toolchain. `actions/checkout`
+     * is declared in five committed workflow files; a `uses:` line never tripped the rule
+     * because it carries no host, but Dependabot quotes release notes as full links, so
+     * merging its pull requests put fifteen such URLs into commit messages and the gate
+     * failed on commits no human wrote.
+     */
+    const host = ['git', 'hub', '.com'].join('');
+    for (const owner of ['actions', 'pnpm', 'github', 'dependabot']) {
+      expect(scanText(`See https://${host}/${owner}/some-action/releases`, 'x.md')).toEqual([]);
+    }
+  });
+
+  it('still fails on a foreign owner that merely looks like a publisher', () => {
+    // The allowance would be worth nothing if it had quietly opened the rule up.
+    const host = ['git', 'hub', '.com'].join('');
+    const owner = plant('actions', '-mirror');
+    const violations = scanText(`https://${host}/${owner}/some-action`, 'x.md');
+    expect(violations).toHaveLength(1);
+    expect(violations[0]?.rule).toBe('repo-reference');
+  });
+
   it('does not read GitHub product URLs as repository references', () => {
     const text = 'https://github.com/features/actions and https://github.com/settings/tokens';
     expect(scanText(text, 'docs/x.md').filter((v) => v.rule === 'repo-reference')).toEqual([]);

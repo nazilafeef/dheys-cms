@@ -11,6 +11,7 @@ import {
   type CostCaps,
   type CostLedgerEntry,
 } from '@lib/cost';
+import { envOr } from '@lib/runner-env';
 
 const NOW = new Date('2026-06-10T09:00:00.000Z');
 
@@ -72,6 +73,46 @@ describe('estimation', () => {
     });
     expect(estimate.rateKnown).toBe(true);
     expect(estimate.costUsd).toBeCloseTo(0.2, 6);
+  });
+
+  it('prices a shipped model when the site supplies an empty override table', () => {
+    /*
+     * The regression that mattered. `agents.modelRates` defaults to `{}` in the site
+     * schema, so this is the shape almost every real site has. Under `input.rates ??
+     * DEFAULT_MODEL_RATES` the empty object won, every model became unpriced, and every
+     * job was estimated at its ceiling — which is what the monthly cap is enforced
+     * against. Found on a live run, not in review.
+     */
+    const estimate = estimateCost({
+      model: 'claude-opus-5',
+      tokensIn: 1_000_000,
+      tokensOut: 0,
+      rates: {},
+      fallbackUsd: 1,
+    });
+    expect(estimate.rateKnown).toBe(true);
+    expect(estimate.costUsd).toBeCloseTo(5, 6);
+  });
+
+  it('lets a site override a rate this CMS ships, without losing the others', () => {
+    const estimate = estimateCost({
+      model: 'claude-opus-5',
+      tokensIn: 1_000_000,
+      tokensOut: 0,
+      rates: { 'claude-opus-5': { inputPerMillion: 1, outputPerMillion: 2 } },
+    });
+    expect(estimate.rateKnown).toBe(true);
+    expect(estimate.costUsd).toBeCloseTo(1, 6);
+
+    // A model the override did not mention still prices from the shipped table.
+    const other = estimateCost({
+      model: 'claude-haiku-4-5',
+      tokensIn: 1_000_000,
+      tokensOut: 0,
+      rates: { 'claude-opus-5': { inputPerMillion: 1, outputPerMillion: 2 } },
+    });
+    expect(other.rateKnown).toBe(true);
+    expect(other.costUsd).toBeCloseTo(1, 6);
   });
 
   it('ships rates only for models it can actually price', () => {
@@ -298,5 +339,28 @@ describe('formatting', () => {
   it('shows four decimals for sub-dollar amounts and two above', () => {
     expect(format(0.166)).toBe('$0.1660');
     expect(format(12.5)).toBe('$12.50');
+  });
+});
+
+/**
+ * The same defect, one level out.
+ *
+ * `estimateCost` priced every model at its ceiling because `??` cannot see the difference
+ * between "absent" and "present but empty". Environment variables reach a runner the same
+ * way: `${{ secrets.X }}` expands to the empty string when unset, not to nothing, so
+ * `env['X'] ?? fallback` hands back `''` and the fallback never fires.
+ */
+describe('reading an environment value that may be present but empty', () => {
+  it('uses the fallback when the variable is unset', () => {
+    expect(envOr({}, 'MODEL', 'a-default')).toBe('a-default');
+  });
+
+  it('uses the fallback when the variable is an empty string', () => {
+    // This is the case `??` gets wrong, and the case Actions actually produces.
+    expect(envOr({ MODEL: '' }, 'MODEL', 'a-default')).toBe('a-default');
+  });
+
+  it('uses the value when one is genuinely set', () => {
+    expect(envOr({ MODEL: 'chosen' }, 'MODEL', 'a-default')).toBe('chosen');
   });
 });

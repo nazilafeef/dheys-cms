@@ -107,3 +107,26 @@ export function apiBaseUrlFromEnv(env: Readonly<Record<string, string | undefine
   if (!raw) return 'https://api.github.com';
   return raw.replace(/\/+$/, '');
 }
+
+/**
+ * An environment value, treating empty as absent.
+ *
+ * `env['X'] ?? fallback` is wrong for anything that reaches a runner through Actions.
+ * `${{ secrets.X }}` and `${{ vars.X }}` expand to the **empty string** when unset, not to
+ * nothing — a real agent run in a live instance showed `EXTERNAL_AGENT_TOKEN:` with an
+ * empty value in its own log — and an empty string is not nullish, so `??` keeps it. The
+ * fallback never fires, and the caller gets `''` where it expected a default: an empty
+ * model name, or `Number('')` returning a zero timeout.
+ *
+ * This is the same defect as the one that made `estimateCost` price every model at its
+ * ceiling (DECISIONS 69): a `??` whose left side can be *present but empty*. Wherever a
+ * value can be empty rather than missing, the emptiness has to be tested, not assumed away.
+ */
+export function envOr(
+  env: Readonly<Record<string, string | undefined>>,
+  key: string,
+  fallback: string,
+): string {
+  const value = env[key];
+  return value === undefined || value === '' ? fallback : value;
+}

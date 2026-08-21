@@ -341,3 +341,68 @@ merely happened.
     there it passes every editor and linter and is then rejected by GitHub at dispatch time
     as a zero-second run named after the workflow file, which is a confusing way to find
     out. Corrected after doing exactly that.
+
+## v1.0.2 — a nullish check that could not see "empty"
+
+69. **`estimateCost` merged the rate tables instead of replacing them, and the bug was found
+    by running the thing rather than reading it.** The expression was
+    `input.rates ?? DEFAULT_MODEL_RATES`, and `siteAgentConfigSchema` defaults
+    `agents.modelRates` to `{}`. An empty object is not nullish, so `??` kept it: the shipped
+    table was never consulted, `rateKnown` was false for every model, and every job was
+    priced at `fallbackUsd` — its ceiling.
+
+    This is not cosmetic. The monthly cap is enforced against these estimates, so a $25 cap
+    admitted 25 jobs whatever they actually cost, and the ledger's relationship to real
+    spend was decided by a `??`. A live agent run on a private instance reported "model has
+    no known rate" for `claude-opus-5` and estimated the full $1.00 ceiling for what should
+    have cost a fraction of a cent — which is how it was noticed, after passing review and a
+    full test suite.
+
+    Merging keeps all three intended behaviours: shipped models price correctly, a site
+    overrides any rate it disagrees with, and a genuinely unknown model still falls through
+    to the ceiling rather than being treated as free. Two regression tests cover it, and each
+    was watched failing against the old expression before being kept — the second matters
+    most, because a site override that _replaced_ rather than merged would still have priced
+    its own model correctly while silently unpricing every other one.
+
+70. **The audit for the same shape found one more class of it, in the environment.** The
+    question was: where else can the left side of a `??` be _present but empty_? Across
+    `src/` and `scripts/`, `estimateCost` was the only instance of the schema-default form —
+    every other `??` over a collection either falls back to an equally empty value
+    (`options.sources ?? []`), tests length explicitly, or reads a Map where a miss really is
+    `undefined`. `guardrailsFor` is the contrast worth naming: it already writes
+    `site.guardrails.length > 0 ? site.guardrails : DEFAULT_GUARDRAILS`, which is exactly
+    what `estimateCost` should have done.
+
+    The environment is the other place a value arrives empty rather than absent.
+    `${{ secrets.X }}` and `${{ vars.X }}` expand to the **empty string** when unset — a
+    real run's log shows `EXTERNAL_AGENT_TOKEN:` with nothing after it — so
+    `env['X'] ?? fallback` hands back `''` and the default never fires. Four sites had it:
+    the Anthropic, OpenAI and Gemini model names, which would have become empty model
+    strings, and the two external-agent timeouts, where `Number('')` is `0` — a zero
+    timeout, which fails instantly rather than obviously.
+
+    `envOr` in `src/lib/runner-env.ts` now treats empty as absent, with three tests. The
+    hazard is worth stating once in general terms: `??` distinguishes _missing_ from
+    _present_, and a surprising number of sources — Zod defaults, Actions expressions, form
+    fields, query strings — deliver "present but empty". Where a value can be empty, the
+    emptiness has to be tested, not assumed away.
+
+71. **The clean-room gate exempts publishers of actions this project uses.** Merging the
+    Dependabot pull requests put fifteen `repo-reference` violations into `main`: Dependabot
+    quotes upstream release notes as full links, so its commit messages name
+    `actions/setup-node` and friends with a host attached, which is exactly what rule 2
+    matches. A `uses:` line never tripped it, because that has no host — so the same
+    dependency was fine in five committed workflow files and a violation in the commit
+    message that bumped it.
+
+    Rule 2 exists so nothing ties this repository to _the operator's_ other repositories and
+    sites. An action publisher is a toolchain dependency, in the same category as
+    `github.com` already being an allowed domain, so the exemption is narrow and explicit:
+    the owners whose actions appear in `.github/workflows/`, listed in the one file that is
+    allowed to widen anything, and nowhere else. Proven in both directions — the four
+    publishers pass, and an owner that merely _looks_ like one still fails.
+
+    Recorded because scoping the history scan to `HEAD` (decision 54) solved this for bot
+    _branches_ and this is the same problem arriving after a merge. The lesson is the same
+    one: a gate has to survive the tools the project actually uses, or it gets switched off.

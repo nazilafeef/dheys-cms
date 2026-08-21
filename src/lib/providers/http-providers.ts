@@ -13,6 +13,7 @@ import {
 } from './types';
 import { estimateCost } from '../cost';
 import type { AgentJobRequest, AgentJobResult } from '../job-contract';
+import { envOr } from '../runner-env';
 
 /**
  * The non-Anthropic direct providers: OpenAI, Gemini, and any OpenAI-compatible endpoint.
@@ -202,7 +203,7 @@ export const openAiProvider: AgentProvider = {
       providerId: 'openai',
       baseUrl: 'https://api.openai.com/v1',
       apiKey,
-      model: ctx.env['OPENAI_MODEL'] ?? 'gpt-4.1',
+      model: envOr(ctx.env, 'OPENAI_MODEL', 'gpt-4.1'),
     });
   },
 };
@@ -266,7 +267,7 @@ export const geminiProvider: AgentProvider = {
     const apiKey = ctx.env['GEMINI_API_KEY'];
     if (!apiKey) throw new ProviderNotConfiguredError('gemini', this.requiredEnv);
 
-    const model = ctx.env['GEMINI_MODEL'] ?? 'gemini-2.5-pro';
+    const model = envOr(ctx.env, 'GEMINI_MODEL', 'gemini-2.5-pro');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     try {

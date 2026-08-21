@@ -6,6 +6,7 @@ import {
   type ProviderContext,
 } from './types';
 import { agentJobResultSchema, type AgentJobRequest, type AgentJobResult } from '../job-contract';
+import { envOr } from '../runner-env';
 
 /**
  * The external-agent adapter, and bring-your-own.
@@ -96,8 +97,8 @@ async function pollUntilDone(
   headers: Record<string, string>,
   startedAt: Date,
 ): Promise<AgentJobResult> {
-  const timeoutMs = Number(ctx.env['EXTERNAL_AGENT_TIMEOUT_MS'] ?? DEFAULT_TIMEOUT_MS);
-  const intervalMs = Number(ctx.env['EXTERNAL_AGENT_POLL_MS'] ?? DEFAULT_INTERVAL_MS);
+  const timeoutMs = Number(envOr(ctx.env, 'EXTERNAL_AGENT_TIMEOUT_MS', String(DEFAULT_TIMEOUT_MS)));
+  const intervalMs = Number(envOr(ctx.env, 'EXTERNAL_AGENT_POLL_MS', String(DEFAULT_INTERVAL_MS)));
   const sleep =
     ctx.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const deadline = Date.now() + timeoutMs;

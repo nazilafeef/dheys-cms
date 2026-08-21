@@ -3,6 +3,28 @@
 Notable changes to Dheys CMS. Format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [semantic versioning](https://semver.org).
 
+## [1.0.2] — 2026-08-21
+
+Cost estimation. No feature or template change.
+
+### Fixed
+
+- **Per-site model rates replaced the shipped rate table instead of overriding it.**
+  `estimateCost` used `input.rates ?? DEFAULT_MODEL_RATES`, and the site schema defaults
+  `agents.modelRates` to `{}` — which is not nullish, so it won. Every site without its own
+  rate table priced every model at its job ceiling, and because the monthly cap is enforced
+  against those estimates, a $25 cap admitted 25 jobs regardless of what they really cost.
+  The tables are now merged, with per-model override precedence.
+- **Environment defaults never fired for variables that arrive empty.** `${{ secrets.X }}`
+  expands to the empty string when unset, not to nothing, so `env['X'] ?? fallback` returned
+  `''`. Affected the Anthropic, OpenAI and Gemini model names and the two external-agent
+  timeouts, where `Number('')` gave a zero timeout. `envOr` now treats empty as absent.
+
+### Added
+
+- Five regression tests: two for the rate merge (both watched failing against the old
+  expression first) and three for `envOr`.
+
 ## [1.0.1] — 2026-08-21
 
 Security and toolchain. No feature, template or content change; the public surface is
