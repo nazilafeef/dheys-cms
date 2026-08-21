@@ -79,7 +79,15 @@ function walk(dir) {
  */
 
 /**
- * Scan every commit message on every ref.
+ * Scan every commit message reachable from HEAD.
+ *
+ * Deliberately HEAD and not `--all`. A gate whose verdict depends on which side branches
+ * happen to exist at scan time is not a gate: once Dependabot is enabled it opens branches
+ * whose messages quote upstream release notes -- `withastro/astro`, `lovell/sharp` -- and
+ * CI checks out with `fetch-depth: 0`, so `--all` failed the build over machine-authored
+ * branches that are not part of the product and may be gone an hour later. What ships is
+ * the history behind HEAD, so that is what is read, and the result is the same on every
+ * machine that checks out the same commit.
  *
  * The `available` flag exists so the summary line cannot claim work that did not happen.
  * An unpacked release archive carries no `.git`, and an empty result there means "nothing
@@ -91,7 +99,7 @@ function walk(dir) {
 function scanCommitHistory() {
   let out;
   try {
-    out = execFileSync('git', ['log', '--pretty=format:%H%x1f%B%x1e', '--all'], {
+    out = execFileSync('git', ['log', '--pretty=format:%H%x1f%B%x1e', 'HEAD'], {
       cwd: ROOT,
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,

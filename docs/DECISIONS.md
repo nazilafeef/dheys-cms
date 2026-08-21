@@ -279,3 +279,25 @@ merely happened.
     Pages first and re-dispatching the same workflow, unchanged, ran green. Recorded because
     the failed run stays visible in the Actions history and reads like a broken pipeline
     otherwise: ship steps 3 and 4 are ordered for a reason.
+
+54. **The clean-room history scan reads `HEAD`, not `--all`.** Turning Dependabot on in ship
+    step 3 put branches in the repository whose commit messages quote upstream release notes,
+    foreign repository references and all, and CI checks out with `fetch-depth: 0` — so the
+    gate read them and failed the build with 22 violations in commits no human wrote and
+    nothing ships. Two readings were available: exempt bot authors, or scan what is actually
+    under test. The second is better, because a gate whose verdict depends on which side
+    branches exist at the moment it runs is not reproducible, and reproducibility is most of
+    what a gate is for. `pnpm check:clean-room` locally and the same command in CI now agree
+    by construction. Proven in both directions: a violation reachable only from a side branch
+    is ignored, and the same message on `HEAD` still fails — the negative case being the one
+    that matters, since scoping to HEAD would also "pass" if the scan had silently stopped
+    reading anything.
+55. **Astro's own advisories are recorded, not fixed, and this is the one CVE the brief's rule
+    did not get applied to.** Dependabot reports Astro CVEs fixed in 6.3.3, 6.4.6, 7.0.4,
+    7.0.6 and 7.0.10 against the shipped 5.18.2. `sharp` was fixed here and cost one line;
+    Astro is two major versions and a migration, which is a slice of work rather than a ship
+    step, and doing it inside the ship sequence would invalidate a release that had already
+    been built and gated. It is written up in the report under Known limitations with each
+    advisory's applicability to a static, server-less build assessed rather than waved at, and
+    as OWNER-TODO 8. Recorded here because "upgrade or replace" is a pre-resolved decision in
+    the brief and this is a departure from it, not an oversight.

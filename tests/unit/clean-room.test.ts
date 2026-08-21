@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -324,5 +325,79 @@ describe('clean-room gate — what the summary claims', () => {
     expect(out).not.toContain('commit message(s)');
     // The walk must still have found the tree; a silent empty scan would pass too.
     expect(out).toMatch(/OK -- ([1-9]\d{2,}) file\(s\) scanned/);
+  });
+});
+
+/**
+ * Which commits the gate reads.
+ *
+ * The history scan is `git log HEAD`, not `git log --all`, and that distinction has
+ * teeth. Enabling Dependabot puts branches in the repository whose commit messages
+ * quote upstream release notes, foreign repository references and all, and CI checks
+ * out with `fetch-depth: 0` so every one of them is present locally. Under `--all` the
+ * gate failed on machine-authored branches that are not part of the product and may be
+ * deleted an hour later -- a verdict that depends on which side branches happen to
+ * exist is not reproducible, which is most of what a gate is for.
+ *
+ * Both directions are asserted. Scoping to HEAD would also "pass" if the scan had
+ * quietly stopped reading anything at all, so the negative case plants the same
+ * violation on HEAD and requires a failure.
+ */
+describe('clean-room gate — which commits it reads', () => {
+  const script = fileURLToPath(new URL('../../scripts/check-clean-room.mjs', import.meta.url));
+
+  /** Builds a throwaway repository whose side branch carries `sideMessage`. */
+  const buildRepo = (headMessage: string, sideMessage: string): string => {
+    const dir = mkdtempSync(join(tmpdir(), 'dheys-clean-room-'));
+    const git = (...a: string[]): void => {
+      const r = spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(`git ${a.join(' ')}: ${r.stderr}`);
+    };
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 'gate@example.invalid');
+    git('config', 'user.name', 'Gate Test');
+    writeFileSync(join(dir, 'README.md'), '# throwaway\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', headMessage);
+    git('checkout', '-q', '-b', 'bot/upstream-bump');
+    git('commit', '-q', '--allow-empty', '-m', sideMessage);
+    git('checkout', '-q', 'main');
+    return dir;
+  };
+
+  const runIn = (dir: string): { status: number | null; out: string } => {
+    const r = spawnSync(process.execPath, [script], {
+      encoding: 'utf8',
+      env: { ...process.env, GIT_DIR: join(dir, '.git'), GIT_WORK_TREE: dir },
+    });
+    return { status: r.status, out: `${r.stdout}${r.stderr}` };
+  };
+
+  // The shape Dependabot actually writes: a "Bumps ..." line carrying a link to the
+  // upstream repository. Assembled at runtime like every other planted value here.
+  const botMessage = `chore(deps): bump a dependency\n\nBumps https://github.com/${plant('upstream-owner', '/upstream-repo')} from 1.0.0 to 2.0.0.\n`;
+
+  it('ignores a violating commit that is only reachable from another branch', () => {
+    const dir = buildRepo('chore: initial commit', botMessage);
+    try {
+      const { status, out } = runIn(dir);
+      expect(status).toBe(0);
+      expect(out).toContain('no violations');
+      // One commit on HEAD; the side branch's commit must not have been counted.
+      expect(out).toContain('plus 1 commit message(s)');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('still fails when that same message is reachable from HEAD', () => {
+    const dir = buildRepo(botMessage, 'chore: an unrelated side commit');
+    try {
+      const { status, out } = runIn(dir);
+      expect(status).not.toBe(0);
+      expect(out).toContain('repo-reference');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
