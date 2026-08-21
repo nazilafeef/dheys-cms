@@ -5,12 +5,14 @@ Rewritten at the end of every slice. A resumed session reads
 
 ## Current slice
 
-**None. Slices 1–18 are complete.** Everything that can be done without a GitHub account has
-been built and verified.
+**None. Slices 1–18 are complete, plus the operator's three amendments.** Everything that can
+be done without a GitHub credential has been built and verified.
 
 ## Next action
 
-Nothing further can be done from this side. The next action belongs to the operator:
+Nothing further can be done from this side. Ship step 6 has now been run in full — see
+`pnpm verify:automation` — and step 5 cannot run because nothing is deployed. The next action
+belongs to the operator:
 
 ```
 gh auth login -h github.com -s repo,workflow,admin:repo_hook -w
@@ -56,6 +58,15 @@ release.
   tests against a real build with a mocked GitHub; the Lighthouse runner enforcing all four
   categories plus LCP, CLS and TBT on five pages; `pnpm connect-site`, verified against two
   fictional local targets; the full `docs/` set, the font slot, and the theme provenance note.
+- **Amendments — the public/private split, bundle verification, provider-free step 6.**
+  This repository's Actions secret store stays empty for good; the operator runs a private
+  instance holding every key and the registry, documented in `README.md`,
+  `docs/installation.md` and OWNER-TODO 7. The release archive is verified by cloning the
+  bundle rather than unzipping the zip, so the clean-room gate reads the shipped history and
+  proves it by marker commit (DECISIONS 46, resolved). Ship step 6 runs against a local
+  stand-in with no provider configured: kill switch, a real scheduler run, two guardrail
+  blocks, idempotency, the connector's route diff and migration report, and a refused
+  migration that would have lost a URL.
 - **18 — Packaging and the report.** `release/dheys-cms-v1.0.0.zip` (182 files, exactly the
   tracked set, no `node_modules/`, `dist/` or `.git/`) and `release/dheys-cms-v1.0.0.bundle`
   (all refs). The archive was unpacked into an empty directory and the whole gate run there
@@ -69,17 +80,18 @@ covered by tests.
 
 ## Gate status
 
-Every row was run against the **unpacked release archive**, not this tree, and observed.
-Nothing here is inferred. Raw log in `release/REPORT.md`, Appendix A.
+Every row was run against a **clone of the release bundle**, not this tree, and observed.
+Nothing here is inferred. Raw logs in `release/REPORT.md`, Appendices A and B. Run both with
+`pnpm verify:release` and `pnpm verify:automation`.
 
 | Gate                             | Status                | Notes                                                              |
 | -------------------------------- | --------------------- | ------------------------------------------------------------------ |
 | `pnpm install --frozen-lockfile` | pass                  | no warnings                                                        |
 | `pnpm typecheck`                 | pass                  | `astro check`, 95 files: 0 errors, 0 warnings, 0 hints             |
 | `pnpm lint`                      | pass                  | ESLint 9 flat config plus a Prettier format check                  |
-| `pnpm test`                      | pass — 655 tests      | 19 files, 0 skipped, 0 todo                                        |
+| `pnpm test`                      | pass — 658 tests      | 20 files, 0 skipped, 0 todo                                        |
 | `pnpm test:e2e`                  | pass — 44 tests       | real build, mocked GitHub, no network                              |
-| `pnpm check:clean-room`          | pass                  | 182 files plus every commit message                                |
+| `pnpm check:clean-room`          | pass                  | 185 files plus every commit message                                |
 | `pnpm build`                     | pass                  | warning-free; the Pagefind `dv` stemmer note is informational      |
 | `pnpm check:links`               | pass — 648 references | both hosting modes; root mode run from PowerShell, see decision 38 |
 | `pnpm lighthouse`                | pass                  | 100/100/100/100 on five pages; LCP 907 ms, CLS 0.000, TBT 0 ms     |
@@ -102,13 +114,13 @@ Article-page JS is 2.8 KB (en) and 3.0 KB (ar), all inline, against a 30 KB budg
 
 ## Blocked
 
-- **Ship steps 2–7** and the `v1.0.0` GitHub release. `gh` is installed (2.97.0) but
+- **Ship steps 2, 3, 4, 5 and 7** and the `v1.0.0` GitHub release. Step 6 is done. `gh` is installed (2.97.0) but
   unauthenticated, and `gh auth login` needs a browser and the operator's hands. This is the
   one stop the brief's preflight permits. Recorded as OWNER-TODO 1.
-- **Live-provider verification.** No `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` or `OPENAI_API_KEY`
-  in the build environment. Per the brief's decision table, every provider is built and tested
-  against mocks, none has been exercised against a live endpoint, and the report says so.
-  Recorded as OWNER-TODO 5.
+- **Live-provider verification, which happens elsewhere by design.** No AI provider has ever
+  been called and no key was read from the environment at any point. Every provider is built
+  and tested against mock transports. This is not a gap to close here: keys live on the
+  operator's private instance, so that is where a live call belongs. OWNER-TODO 5 and 7.
 
 ## Half-finished
 
