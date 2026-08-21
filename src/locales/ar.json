@@ -2,7 +2,6 @@
   "site.title": "ديــز CMS",
   "site.tagline": "مكتب تحرير واحد لكل المواقع التي تديرها.",
   "site.skipToContent": "تخطَّ إلى المحتوى",
-
   "nav.home": "الرئيسية",
   "nav.articles": "المقالات",
   "nav.archive": "الأرشيف",
@@ -11,7 +10,6 @@
   "nav.menu": "القائمة",
   "nav.closeMenu": "إغلاق القائمة",
   "nav.language": "اللغة",
-
   "article.readingTime": "قراءة {minutes} دقيقة",
   "article.publishedOn": "نُشر في {date}",
   "article.updatedOn": "حُدِّث في {date}",
@@ -30,48 +28,39 @@
   "article.category": "التصنيف",
   "article.series": "من سلسلة {series}",
   "article.partOf": "الجزء {index} من {total}",
-
   "ai.attribution": "كتبه {model}، وراجعه {reviewer}",
   "ai.attributionUnreviewed": "كتبه {model}",
   "ai.generatedLabel": "بمساعدة الذكاء الاصطناعي",
   "ai.sources": "المصادر",
   "ai.promptVersion": "إصدار المُوجِّه {version}",
   "ai.disclosureHeading": "كيف أُعِدَّ هذا المقال",
-
   "affiliate.disclosure": "يحتوي هذا المقال على روابط تسويق بالعمولة. عند الشراء عبر أحدها قد يحصل هذا الموقع على عمولة دون أي تكلفة إضافية عليك.",
   "affiliate.disclosureHeading": "إفصاح عن العمولة",
-
   "search.title": "بحث",
   "search.placeholder": "ابحث في المقالات",
   "search.noResults": "لا نتائج تطابق «{query}».",
   "search.resultCount": "{count} نتيجة",
   "search.resultCountPlural": "{count} نتيجة",
   "search.clear": "مسح البحث",
-
   "archive.title": "الأرشيف",
   "archive.byCategory": "التصنيف: {name}",
   "archive.byTag": "الوسم: {name}",
   "archive.byAuthor": "مقالات {name}",
   "archive.empty": "لا مقالات هنا بعد.",
-
   "pagination.previous": "الأحدث",
   "pagination.next": "الأقدم",
   "pagination.page": "الصفحة {current} من {total}",
-
   "error.404.title": "الصفحة غير موجودة",
   "error.404.body": "لا يطابق هذا العنوان أي صفحة في الموقع. ربما نُقلت الصفحة أو كُتب الرابط خطأً.",
   "error.404.home": "إلى الصفحة الرئيسية",
   "error.404.search": "ابحث بدلًا من ذلك",
-
   "theme.toggle": "تبديل نظام الألوان",
   "theme.light": "فاتح",
   "theme.dark": "داكن",
   "theme.system": "النظام",
-
   "footer.licence": "منشور تحت رخصة MIT.",
   "footer.builtWith": "بُني بـ ديــز CMS",
   "footer.feeds": "الخلاصات",
-
   "admin.title": "لوحة تحكم ديــز CMS",
   "admin.signIn": "اتصال",
   "admin.signInHeading": "اتصل بمستودعاتك",
@@ -84,7 +73,6 @@
   "admin.connectedAs": "متصل باسم {login}",
   "admin.connectionFailed": "تعذَّر الاتصال: {reason}",
   "admin.sessionOnlyNotice": "للجلسة فقط. إغلاق التبويب ينسى الرمز.",
-
   "admin.nav.dashboard": "اللوحة",
   "admin.nav.queue": "قائمة المراجعة",
   "admin.nav.content": "المحتوى",
@@ -94,7 +82,6 @@
   "admin.nav.runs": "تشغيلات الوكلاء",
   "admin.nav.sites": "المواقع",
   "admin.nav.settings": "الإعدادات",
-
   "admin.dashboard.heading": "كل المواقع",
   "admin.dashboard.awaitingReview": "بانتظار المراجعة",
   "admin.dashboard.scheduled": "مجدول",
@@ -103,7 +90,6 @@
   "admin.dashboard.capRemaining": "{amount} متبقٍ من {cap}",
   "admin.dashboard.killSwitchOn": "النشر الآلي متوقف بمفتاح الإيقاف.",
   "admin.dashboard.noSites": "لا مواقع متصلة بعد. أضف موقعًا إلى سجلك للبدء.",
-
   "admin.queue.heading": "قائمة المراجعة",
   "admin.queue.empty": "لا شيء بانتظار المراجعة.",
   "admin.queue.approve": "اعتماد",
@@ -115,7 +101,6 @@
   "admin.queue.blockedBy": "موقوف بحاجز واحد",
   "admin.queue.blockedByPlural": "موقوف بـ {count} حواجز",
   "admin.queue.failedJob": "فشلت المهمة عند الاستلام",
-
   "admin.editor.title": "العنوان",
   "admin.editor.slug": "المُعرِّف",
   "admin.editor.slugTaken": "هذا المُعرِّف يستخدمه «{title}» بالفعل.",
@@ -139,7 +124,6 @@
   "admin.editor.numberedList": "قائمة مرقّمة",
   "admin.editor.image": "إدراج صورة",
   "admin.editor.dropImage": "أفلِت صورة لرفعها",
-
   "admin.seo.heading": "البحث والتواصل الاجتماعي",
   "admin.seo.metaTitle": "عنوان الميتا",
   "admin.seo.metaDescription": "وصف الميتا",
@@ -148,7 +132,6 @@
   "admin.seo.charactersUsed": "{used} من {limit} حرفًا",
   "admin.seo.tooLong": "{used} من {limit} حرفًا — أطول من اللازم",
   "admin.seo.socialPreview": "معاينة اجتماعية",
-
   "admin.commission.heading": "تكليف جديد",
   "admin.commission.brief": "الموجز",
   "admin.commission.targetSite": "الموقع المستهدف",
@@ -165,7 +148,6 @@
   "admin.commission.approvalHumanOptional": "ينشر تلقائيًا إن لم يقرر أحد",
   "admin.commission.approvalAuto": "النشر تلقائيًا",
   "admin.commission.create": "إنشاء التكليف",
-
   "admin.runs.heading": "تشغيلات الوكلاء",
   "admin.runs.status": "الحالة",
   "admin.runs.cost": "التكلفة",
@@ -175,17 +157,14 @@
   "admin.runs.duration": "المدة",
   "admin.runs.viewLog": "عرض السجل",
   "admin.runs.empty": "لا تشغيلات بعد.",
-
   "admin.cost.capReached": "بلغ {site} سقفه الشهري. الإرسال موقوف.",
   "admin.cost.override": "تجاوز السقف لهذا التشغيل",
   "admin.cost.overrideConfirm": "سيتجاوز هذا التشغيل السقف الشهري. أتريد المتابعة؟",
-
   "admin.media.heading": "الوسائط",
   "admin.media.upload": "رفع",
   "admin.media.altLabel": "النص البديل",
   "admin.media.altRequired": "النص البديل مطلوب قبل استخدام هذه الصورة.",
   "admin.media.empty": "لا وسائط لهذا الموقع بعد.",
-
   "admin.state.idea": "فكرة",
   "admin.state.commissioned": "مُكلَّف",
   "admin.state.researching": "بحث",
@@ -197,7 +176,6 @@
   "admin.state.scheduled": "مجدول",
   "admin.state.published": "منشور",
   "admin.state.rejected": "مرفوض",
-
   "admin.common.site": "الموقع",
   "admin.common.locale": "اللغة",
   "admin.common.author": "الكاتب",
@@ -214,7 +192,6 @@
   "admin.common.retry": "إعادة المحاولة",
   "admin.common.none": "لا شيء",
   "admin.common.required": "مطلوب",
-
   "guardrail.requiredField": "{site}: «{item}» ينقصه {field}، وهو حقل يشترطه هذا الموقع.",
   "guardrail.bannedPhrase": "{site}: «{item}» يحتوي عبارة «{phrase}» غير المسموح بها في هذا الموقع.",
   "guardrail.minimumWords": "{site}: «{item}» فيه {actual} كلمة، والموقع يشترط {expected} على الأقل.",
@@ -222,8 +199,17 @@
   "guardrail.humanReviewRequired": "{site}: «{item}» يجب أن يعتمده إنسان قبل النشر.",
   "guardrail.localeCompleteness": "{site}: «{item}» تنقصه ترجمة {locale} التي يشترطها هذا الموقع.",
   "guardrail.thaanaPunctuation": "{site}: «{item}» يستخدم ترقيمًا لاتينيًا داخل نص بخط ثانا عند الموضع {index}.",
-
   "contract.missingField": "أنتجت المهمة {run} عنصرًا بلا {field}. الحقول المطلوبة: {required}.",
   "contract.invalidField": "أنتجت المهمة {run} قيمة غير صالحة للحقل {field}: {reason}.",
-  "contract.rejected": "رُفض عند الاستلام — ولم يُكتب في مستودع الموقع."
+  "contract.rejected": "رُفض عند الاستلام — ولم يُكتب في مستودع الموقع.",
+  "admin.registry.loading": "جارٍ تحميل السجل…",
+  "admin.registry.loaded": "تم تحميل السجل — {count} موقع.",
+  "admin.settings.registryHeading": "سجل المواقع",
+  "admin.settings.sessionHeading": "الجلسة",
+  "admin.settings.owner": "المالك",
+  "admin.settings.repository": "المستودع",
+  "admin.settings.path": "مسار الملف",
+  "admin.settings.ref": "الفرع",
+  "admin.settings.save": "حفظ وتحميل",
+  "admin.settings.forget": "نسيان هذا الموقع"
 }

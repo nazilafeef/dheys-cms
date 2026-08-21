@@ -3,6 +3,42 @@
 Notable changes to Dheys CMS. Format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [semantic versioning](https://semver.org).
 
+## [1.0.4] — 2026-08-21
+
+The admin. Every nav tab appeared to do nothing, and the cause was worse than a broken tab.
+
+### Fixed
+
+- **Every admin view was gated on a registry the browser could not obtain.** The island
+  hydrated correctly with no console errors — the views were simply written
+  `{registry && …}`, so with no registry none of them rendered and the tabs looked dead.
+  Settings was gated the same way, which is what made it unrecoverable: Settings is the only
+  screen that matters when you have no sites. Settings and Disconnect now work with an empty
+  registry, and every other view shows an empty state rather than nothing.
+- **The registry had no browser-reachable location.** All three documented options — an
+  Actions secret and two repository variables — are read from the environment, which a
+  static page does not have. The scheduler could always load a registry; the admin never
+  could.
+
+### Added
+
+- **Settings now configures the registry.** Enter the private repository holding
+  `dheys-sites.json`; the admin remembers the location in `localStorage` and fetches the
+  registry over the API with your own token. The location is stored — the registry contents
+  and the token are not.
+- Sixteen tests, including five that load the admin with **no** registry and assert every tab
+  responds and Settings is usable. Nothing tested the zero-sites state before, which is how
+  this shipped.
+
+### Changed
+
+- The e2e build no longer inlines the example registry. That injection made the empty state
+  unreachable in the suite; tests that want sites now ask for them the way a browser does.
+- `docs/site-registry.md` states which options serve the runner, which serve the browser, and
+  why a gist cannot work in the browser: a fine-grained token cannot be granted gist access
+  at all. The `agents.modelRates` paragraph is corrected for v1.0.3 — an unpriced model is
+  refused by name, no longer estimated at the job ceiling.
+
 ## [1.0.3] — 2026-08-21
 
 Cost control. Two values that meant one thing to the schema and another to the code.

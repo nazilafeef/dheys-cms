@@ -12,11 +12,21 @@ import {
 } from '@lib/admin/session';
 import {
   parseRegistry,
+  loadRegistry,
   sitesVisibleTo,
   capsFrom,
   type Registry,
   type SiteDefinition,
 } from '@lib/site-registry';
+import { githubRegistryFetcher } from '@lib/runner-env';
+import {
+  readRegistryLocation,
+  writeRegistryLocation,
+  clearRegistryLocation,
+  parseRegistryLocation,
+  toRegistrySource,
+  type RegistryLocation,
+} from '@lib/admin/registry-location';
 import { summariseSpend, format as formatUsd, type CostLedgerEntry } from '@lib/cost';
 import { translator, LOCALES, type LocaleCode } from '@lib/i18n';
 
@@ -50,7 +60,16 @@ interface Status {
 }
 
 export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.Element {
-  const t = translator(locale);
+  /*
+   * Memoised because it is an effect dependency.
+   *
+   * `translator` returns a fresh closure each call, so an unmemoised `t` changes identity on
+   * every render — and the registry effect below lists it as a dependency. That combination
+   * refetched the registry on every render, replaced the registry object each time, handed
+   * every child a new `site` prop, and quietly reset the editor mid-edit. The symptom was a
+   * save that never reported "Saved"; the cause was three renders away from it.
+   */
+  const t = useMemo(() => translator(locale), [locale]);
 
   const [session, setSession] = useState<Session | null>(null);
   const [tokenInput, setTokenInput] = useState('');
@@ -58,12 +77,22 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
   const [view, setView] = useState<View>('dashboard');
   const [siteId, setSiteId] = useState<string | null>(null);
   const [contentLocale, setContentLocale] = useState<LocaleCode | null>(null);
+  const [location, setLocation] = useState<RegistryLocation | null>(null);
+  const [loaded, setLoaded] = useState<Registry | null>(null);
+  const [registryStatus, setRegistryStatus] = useState<Status>({ kind: 'idle' });
 
   useEffect(() => {
     setSession(readSession());
+    setLocation(readRegistryLocation());
   }, []);
 
-  const registry = useMemo<Registry | null>(() => {
+  /**
+   * A registry injected at build time, if a *private* deployment chose to do that.
+   *
+   * Kept for the private-instance case, where the bundle is not public. It is never the
+   * path a browser on the published site can use, which is what `loaded` is for.
+   */
+  const injected = useMemo<Registry | null>(() => {
     if (!registryJson) return null;
     try {
       return parseRegistry(registryJson);
@@ -71,6 +100,8 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
       return null;
     }
   }, [registryJson]);
+
+  const registry = loaded ?? injected;
 
   const client = useMemo(
     () =>
@@ -117,6 +148,61 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
     },
     [tokenInput, t],
   );
+
+  /**
+   * Fetch the registry with the operator's own token.
+   *
+   * Runs whenever a session and a stored location are both present, which is why it is an
+   * effect rather than something bolted onto the connect handler: an operator who saves a
+   * location while already connected must not have to reconnect to see it take effect.
+   */
+  useEffect(() => {
+    if (!client || !location) {
+      setLoaded(null);
+      return;
+    }
+    let cancelled = false;
+    setRegistryStatus({ kind: 'working', message: t('admin.registry.loading') });
+    loadRegistry(toRegistrySource(location), githubRegistryFetcher(client))
+      .then((value) => {
+        if (cancelled) return;
+        setLoaded(value);
+        setRegistryStatus({
+          kind: 'ok',
+          message: t('admin.registry.loaded', { count: String(value.sites.length) }),
+        });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setLoaded(null);
+        setRegistryStatus({
+          kind: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, location, t]);
+
+  const saveLocation = useCallback((next: RegistryLocation) => {
+    const stored = writeRegistryLocation(next);
+    setLocation(next);
+    if (!stored) {
+      setRegistryStatus({
+        kind: 'error',
+        message:
+          'Saved for this page only — this browser refused to store it, so it will be forgotten on reload.',
+      });
+    }
+  }, []);
+
+  const forgetLocation = useCallback(() => {
+    clearRegistryLocation();
+    setLocation(null);
+    setLoaded(null);
+    setRegistryStatus({ kind: 'idle' });
+  }, []);
 
   const disconnect = useCallback(() => {
     clearSession();
@@ -216,7 +302,30 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
       )}
 
       <main class="admin__body">
-        {!registry && <NoRegistry t={t} />}
+        {/*
+         * Every view renders, with or without a registry.
+         *
+         * This block used to read `{registry && view === '…' && …}` six times over, so with
+         * no registry *nothing* rendered: clicking a tab updated the view state and the
+         * screen never changed. It looked like dead JavaScript and was a total gate — and
+         * it gated Settings too, which is the one screen that matters when you have no
+         * sites, and the only place to tell the admin where the registry lives. The
+         * chicken could not reach the egg.
+         */}
+        {view === 'settings' && (
+          <Settings
+            t={t}
+            login={session.login}
+            location={location}
+            status={registryStatus}
+            registry={registry}
+            onSave={saveLocation}
+            onForget={forgetLocation}
+            onDisconnect={disconnect}
+          />
+        )}
+
+        {view !== 'settings' && !registry && <NoRegistry t={t} status={registryStatus} />}
 
         {registry && view === 'dashboard' && <Dashboard t={t} registry={registry} sites={sites} />}
 
@@ -236,9 +345,9 @@ export default function AdminApp({ locale, registryJson }: AdminAppProps): JSX.E
           />
         )}
 
-        {registry && (view === 'runs' || view === 'settings') && <NotYetWired t={t} view={view} />}
+        {registry && view === 'runs' && <NotYetWired t={t} view={view} />}
 
-        {registry && sites.length === 0 && view !== 'dashboard' && (
+        {registry && sites.length === 0 && view !== 'dashboard' && view !== 'settings' && (
           <p class="admin__panel">{t('admin.dashboard.noSites')}</p>
         )}
       </main>
@@ -300,15 +409,166 @@ function ConnectScreen(props: {
   );
 }
 
-function NoRegistry({ t }: { t: Translate }): JSX.Element {
+function NoRegistry({ t, status }: { t: Translate; status: Status }): JSX.Element {
   return (
-    <div class="admin__panel">
+    <div class="admin__panel" data-testid="no-registry">
       <h2>{t('admin.dashboard.noSites')}</h2>
-      <p>
-        The site registry never lives in this repository. Point the deployment at a private gist, a
-        private companion repository, or a repository secret — all three are documented in{' '}
-        <code>docs/site-registry.md</code>.
-      </p>
+      {status.kind === 'error' ? (
+        <p class="admin__status admin__status--error" data-testid="registry-error">
+          {status.message}
+        </p>
+      ) : (
+        <p>
+          No registry is configured for this browser yet. Open{' '}
+          <strong>{t('admin.nav.settings')}</strong> and point it at the private repository that
+          holds <code>dheys-sites.json</code>.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Settings, and the only screen that has to work with nothing configured.
+ *
+ * It is where the registry location is entered, so gating it on having a registry made the
+ * admin unusable from a standing start. It is also where Disconnect lives, for the same
+ * reason: the two things you can always do are tell it where to look and stop looking.
+ */
+function Settings(props: {
+  t: Translate;
+  login: string;
+  location: RegistryLocation | null;
+  status: Status;
+  registry: Registry | null;
+  onSave: (location: RegistryLocation) => void;
+  onForget: () => void;
+  onDisconnect: () => void;
+}): JSX.Element {
+  const { t, login, location, status, registry, onSave, onForget, onDisconnect } = props;
+
+  const [owner, setOwner] = useState(location?.owner ?? '');
+  const [name, setName] = useState(location?.name ?? '');
+  const [path, setPath] = useState(location?.path ?? 'dheys-sites.json');
+  const [ref, setRef] = useState(location?.ref ?? 'main');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const submit = (event: TargetedSubmitEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    const parsed = parseRegistryLocation({ owner, name, path, ref });
+    if (!parsed.ok) {
+      setFormError(parsed.error);
+      return;
+    }
+    setFormError(null);
+    onSave(parsed.value);
+  };
+
+  return (
+    <div class="admin__panel" data-testid="settings">
+      <h2>{t('admin.nav.settings')}</h2>
+
+      <section>
+        <h3>{t('admin.settings.registryHeading')}</h3>
+        <p>
+          The registry is fetched in this browser with your own token, so it is never built into the
+          published bundle. Only the <em>location</em> is remembered here; the registry itself and
+          your token are not.
+        </p>
+
+        <form onSubmit={submit} class="admin__form" data-testid="registry-form">
+          <label for="registry-owner">{t('admin.settings.owner')}</label>
+          <input
+            id="registry-owner"
+            data-testid="registry-owner"
+            value={owner}
+            autocomplete="off"
+            spellcheck={false}
+            onInput={(event) => setOwner((event.currentTarget as HTMLInputElement).value)}
+          />
+
+          <label for="registry-name">{t('admin.settings.repository')}</label>
+          <input
+            id="registry-name"
+            data-testid="registry-name"
+            value={name}
+            autocomplete="off"
+            spellcheck={false}
+            onInput={(event) => setName((event.currentTarget as HTMLInputElement).value)}
+          />
+
+          <label for="registry-path">{t('admin.settings.path')}</label>
+          <input
+            id="registry-path"
+            data-testid="registry-path"
+            value={path}
+            autocomplete="off"
+            spellcheck={false}
+            onInput={(event) => setPath((event.currentTarget as HTMLInputElement).value)}
+          />
+
+          <label for="registry-ref">{t('admin.settings.ref')}</label>
+          <input
+            id="registry-ref"
+            data-testid="registry-ref"
+            value={ref}
+            autocomplete="off"
+            spellcheck={false}
+            onInput={(event) => setRef((event.currentTarget as HTMLInputElement).value)}
+          />
+
+          <button type="submit" data-testid="registry-save">
+            {t('admin.settings.save')}
+          </button>
+        </form>
+
+        {formError && (
+          <p class="admin__status admin__status--error" data-testid="registry-form-error">
+            {formError}
+          </p>
+        )}
+
+        {status.kind !== 'idle' && status.message && (
+          <p
+            class={status.kind === 'error' ? 'admin__status admin__status--error' : 'admin__status'}
+            data-testid="registry-status"
+          >
+            {status.message}
+          </p>
+        )}
+
+        {location && (
+          <p data-testid="registry-current">
+            Reading <code>{`${location.owner}/${location.name}`}</code> at{' '}
+            <code>{location.path}</code> on <code>{location.ref}</code>
+            {registry ? ` — ${registry.sites.length} site(s).` : '.'}{' '}
+            <button
+              type="button"
+              class="admin__link-button"
+              onClick={onForget}
+              data-testid="registry-forget"
+            >
+              {t('admin.settings.forget')}
+            </button>
+          </p>
+        )}
+
+        <p class="admin__hint">
+          <strong>A private repository, not a gist.</strong> A fine-grained token — the kind this
+          screen asks for, and the kind you can scope to a single repository — cannot be given gist
+          access at all; that permission exists only on classic tokens. A gist still works for the{' '}
+          <em>runner</em>, which holds its own credential. It cannot work here, so it is not
+          offered.
+        </p>
+      </section>
+
+      <section>
+        <h3>{t('admin.settings.sessionHeading')}</h3>
+        <p data-testid="settings-identity">{t('admin.connectedAs', { login })}</p>
+        <button type="button" onClick={onDisconnect} data-testid="settings-disconnect">
+          {t('admin.disconnect')}
+        </button>
+      </section>
     </div>
   );
 }

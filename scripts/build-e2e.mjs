@@ -2,15 +2,16 @@
 /**
  * The build the end-to-end suite runs against.
  *
- * Identical to `pnpm build`, plus two environment values the tests need:
+ * Identical to `pnpm build`, plus one environment value the tests need:
  *
- *   PUBLIC_SITE_REGISTRY — so the admin has sites to manage. It is the *example* registry,
- *                          whose sites are all invented. A real deployment loads its
- *                          registry from a gist, a companion repository or a secret; this
- *                          is a fixture, and it lives here rather than in the app so no
- *                          test hook ships inside the product.
- *   PUBLIC_THEME         — `dheys`, so the branded theme is exercised rather than only the
- *                          neutral default.
+ *   PUBLIC_THEME — `dheys`, so the branded theme is exercised rather than only the neutral
+ *                  default.
+ *
+ * **No registry is injected.** It used to be: the example registry was inlined at build
+ * time so the admin had sites to manage. That made the zero-registry state unreachable, so
+ * nothing tested it — and the admin shipped with every view gated on a registry it could
+ * never load in a browser. Tests that want sites now ask for them the way an operator does,
+ * through `useExampleRegistry` in `_mocks.ts`.
  *
  * This is a separate step rather than part of the Playwright `webServer` command, because
  * building there races the test run: `astro build` empties `dist/` before it refills it,
@@ -18,11 +19,9 @@
  * produced 26 failures against a half-written directory.
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const registry = readFileSync(new URL('../src/sites.example.json', import.meta.url), 'utf8');
 
 const result = spawnSync('pnpm', ['exec', 'astro', 'build'], {
   cwd: ROOT,
@@ -30,7 +29,6 @@ const result = spawnSync('pnpm', ['exec', 'astro', 'build'], {
   shell: true,
   env: {
     ...process.env,
-    PUBLIC_SITE_REGISTRY: JSON.stringify(JSON.parse(registry)),
     PUBLIC_THEME: 'dheys',
   },
 });
@@ -40,4 +38,4 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-console.log('build:e2e: built with the example registry and the Dheys theme.');
+console.log('build:e2e: built with the Dheys theme and no injected registry.');

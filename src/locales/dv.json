@@ -2,7 +2,6 @@
   "site.title": "ދޭސް ސީއެމްއެސް",
   "site.tagline": "ތިޔަ ހިންގާ ހުރިހާ ސައިޓަކަށް އެއް އެޑިޓޯރިއަލް މޭޒެއް.",
   "site.skipToContent": "މައިގަނޑު ބަޔަށް ދޭ",
-
   "nav.home": "މައި ޞަފްޙާ",
   "nav.articles": "ލިޔުންތައް",
   "nav.archive": "އަރުޝީފް",
@@ -11,7 +10,6 @@
   "nav.menu": "މެނޫ",
   "nav.closeMenu": "މެނޫ ބަންދުކުރޭ",
   "nav.language": "ބަސް",
-
   "article.readingTime": "{minutes} މިނެޓްގެ ކިޔުމެއް",
   "article.publishedOn": "ޝާއިޢުކުރީ {date}",
   "article.updatedOn": "އަޕްޑޭޓްކުރީ {date}",
@@ -30,48 +28,39 @@
   "article.category": "ބައި",
   "article.series": "{series} ސިލްސިލާގެ ބައެއް",
   "article.partOf": "{total} ން {index} ވަނަ ބައި",
-
   "ai.attribution": "ލިޔުނީ {model}، ބެލީ {reviewer}",
   "ai.attributionUnreviewed": "ލިޔުނީ {model}",
   "ai.generatedLabel": "އޭއައި އެހީގައި",
   "ai.sources": "މަޞްދަރުތައް",
   "ai.promptVersion": "ޕްރޮމްޕްޓް ވަރޝަން {version}",
   "ai.disclosureHeading": "މި ލިޔުން އުފެއްދި ގޮތް",
-
   "affiliate.disclosure": "މި ލިޔުމުގައި އެފިލިއޭޓް ލިންކްތައް ހިމެނެއެވެ. އެއިން ލިންކަކުން ބައްލަވައިގަތުމުން، އިތުރު އަގަކާ ނުލައި މި ސައިޓަށް ކޮމިޝަނެއް ލިބިދާނެއެވެ.",
   "affiliate.disclosureHeading": "އެފިލިއޭޓް ހާމަކުރުން",
-
   "search.title": "ހޯދާ",
   "search.placeholder": "ލިޔުންތައް ހޯދާ",
   "search.noResults": "“{query}” އާ ގުޅޭ އެއްޗެއް ނުފެނުނެވެ.",
   "search.resultCount": "{count} ނަތީޖާ",
   "search.resultCountPlural": "{count} ނަތީޖާ",
   "search.clear": "ހޯދުން ސާފުކުރޭ",
-
   "archive.title": "އަރުޝީފް",
   "archive.byCategory": "ބައި: {name}",
   "archive.byTag": "ޓެގް: {name}",
   "archive.byAuthor": "{name} ގެ ލިޔުންތައް",
   "archive.empty": "އަދި މިތާ ލިޔުމެއް ނެތެވެ.",
-
   "pagination.previous": "އައު",
   "pagination.next": "ދުވަސްވީ",
   "pagination.page": "ޞަފްޙާ {total} ން {current}",
-
   "error.404.title": "ޞަފްޙާ ނުފެނުނު",
   "error.404.body": "އެ އެޑްރެހާ ގުޅޭ އެއްޗެއް މި ސައިޓުގައި ނެތެވެ. ބަދަލުވެފައި ވެދާނެ، ނުވަތަ ލިންކް ލިޔެވުނީ ރަނގަޅަށް ނޫން ކަމަށް ވެދާނެއެވެ.",
   "error.404.home": "މައި ޞަފްޙާއަށް ދޭ",
   "error.404.search": "އޭގެ ބަދަލުގައި ހޯދާ",
-
   "theme.toggle": "ކުލައިގެ ވައްޓަފާޅި ބަދަލުކުރޭ",
   "theme.light": "އަލި",
   "theme.dark": "އަނދިރި",
   "theme.system": "ސިސްޓަމް",
-
   "footer.licence": "އެމްއައިޓީ ލައިސަންސްގެ ދަށުން ދޫކޮށްލެވިފައި.",
   "footer.builtWith": "ބިނާކުރީ ދޭސް ސީއެމްއެސް އިން",
   "footer.feeds": "ފީޑްތައް",
-
   "admin.title": "ދޭސް ސީއެމްއެސް އެޑްމިން",
   "admin.signIn": "ގުޅާލާ",
   "admin.signInHeading": "ތިޔަ ރެޕޮޒިޓަރީތަކާ ގުޅާލާ",
@@ -84,7 +73,6 @@
   "admin.connectedAs": "ގުޅިފައި: {login}",
   "admin.connectionFailed": "ގުޅޭގޮތެއް ނުވި: {reason}",
   "admin.sessionOnlyNotice": "ސެޝަނަށް އެކަނި. މި ޓެބް ބަންދުކުރުމުން ޓޯކަން ފޮހެވޭނެ.",
-
   "admin.nav.dashboard": "ޑޭޝްބޯޑް",
   "admin.nav.queue": "ބެލުމުގެ ކިޔޫ",
   "admin.nav.content": "ކޮންޓެންޓް",
@@ -94,7 +82,6 @@
   "admin.nav.runs": "އޭޖެންޓް ރަންތައް",
   "admin.nav.sites": "ސައިޓްތައް",
   "admin.nav.settings": "ސެޓިންގްސް",
-
   "admin.dashboard.heading": "ހުރިހާ ސައިޓެއް",
   "admin.dashboard.awaitingReview": "ބެލުމަށް މަޑުކުރަނީ",
   "admin.dashboard.scheduled": "ތާވަލުކުރެވިފައި",
@@ -103,7 +90,6 @@
   "admin.dashboard.capRemaining": "{cap} ން {amount} ބާކީ",
   "admin.dashboard.killSwitchOn": "އޮޓޮމެޓިކް ޝާއިޢުކުރުން ކިލް ސްވިޗުން ހުއްޓިފައި.",
   "admin.dashboard.noSites": "އަދި ސައިޓެއް ގުޅާލެވިފައި ނެތެވެ. ފަށަން ރެޖިސްޓްރީއަށް ސައިޓެއް އިތުރުކުރައްވާ.",
-
   "admin.queue.heading": "ބެލުމުގެ ކިޔޫ",
   "admin.queue.empty": "ބެލުމަށް އެއްޗެއް މަޑުކޮށްފައި ނެތެވެ.",
   "admin.queue.approve": "ފާސްކުރޭ",
@@ -115,7 +101,6 @@
   "admin.queue.blockedBy": "{count} ގާޑްރެއިލުން ހުއްޓިފައި",
   "admin.queue.blockedByPlural": "{count} ގާޑްރެއިލުން ހުއްޓިފައި",
   "admin.queue.failedJob": "ވަނުމުގައި ޖޮބް ފެއިލްވެއްޖެ",
-
   "admin.editor.title": "ސުރުޚީ",
   "admin.editor.slug": "ސްލަގް",
   "admin.editor.slugTaken": "އެ ސްލަގް މިހާރު {title} ބޭނުންކުރެއެވެ.",
@@ -139,7 +124,6 @@
   "admin.editor.numberedList": "ނަންބަރު ލިސްޓް",
   "admin.editor.image": "ފޮޓޯ ލައްވާ",
   "admin.editor.dropImage": "އަޕްލޯޑްކުރަން ފޮޓޯއެއް ދޫކޮށްލާ",
-
   "admin.seo.heading": "ހޯދުމާއި ސޯޝަލް",
   "admin.seo.metaTitle": "މެޓާ ސުރުޚީ",
   "admin.seo.metaDescription": "މެޓާ ތަޢާރަފް",
@@ -148,7 +132,6 @@
   "admin.seo.charactersUsed": "{limit} ން {used} އަކުރު",
   "admin.seo.tooLong": "{limit} ން {used} އަކުރު — ދިގު",
   "admin.seo.socialPreview": "ސޯޝަލް ޕްރިވިއު",
-
   "admin.commission.heading": "އައު ކޮމިޝަން",
   "admin.commission.brief": "ބްރީފް",
   "admin.commission.targetSite": "އަމާޒު ސައިޓް",
@@ -165,7 +148,6 @@
   "admin.commission.approvalHumanOptional": "ނިންމުމެއް ނުނިންމައިފިނަމަ އަމިއްލައަށް ޝާއިޢުވާނެ",
   "admin.commission.approvalAuto": "އަމިއްލައަށް ޝާއިޢުކުރޭ",
   "admin.commission.create": "ކޮމިޝަން އުފައްދާ",
-
   "admin.runs.heading": "އޭޖެންޓް ރަންތައް",
   "admin.runs.status": "ޙާލަތު",
   "admin.runs.cost": "ޚަރަދު",
@@ -175,17 +157,14 @@
   "admin.runs.duration": "ހޭދަވި ވަގުތު",
   "admin.runs.viewLog": "ލޮގް ބަލާ",
   "admin.runs.empty": "އަދި އޭޖެންޓް ރަނެއް ނެތެވެ.",
-
   "admin.cost.capReached": "{site} ގެ މަހުގެ ލިމިޓަށް ވާޞިލްވެއްޖެ. ފޮނުވުން ހުއްޓިފައި.",
   "admin.cost.override": "މި ރަނަށް ލިމިޓް ފަހަނައަޅާ",
   "admin.cost.overrideConfirm": "މި ރަން މަހުގެ ލިމިޓް ފަހަނައަޅާނެއެވެ. ކުރިއަށް ދާންވީތޯ؟",
-
   "admin.media.heading": "މީޑިއާ",
   "admin.media.upload": "އަޕްލޯޑް",
   "admin.media.altLabel": "އޯލްޓް ލިޔުން",
   "admin.media.altRequired": "މި ފޮޓޯ ބޭނުންކުރެވޭނީ އޯލްޓް ލިޔުން ލިޔުމުންނެވެ.",
   "admin.media.empty": "މި ސައިޓަށް އަދި މީޑިއާއެއް ނެތެވެ.",
-
   "admin.state.idea": "ޚިޔާލު",
   "admin.state.commissioned": "ކޮމިޝަންކުރެވިފައި",
   "admin.state.researching": "ދިރާސާކުރަނީ",
@@ -197,7 +176,6 @@
   "admin.state.scheduled": "ތާވަލުކުރެވިފައި",
   "admin.state.published": "ޝާއިޢުކުރެވިފައި",
   "admin.state.rejected": "ބޭރުކުރެވިފައި",
-
   "admin.common.site": "ސައިޓް",
   "admin.common.locale": "ބަސް",
   "admin.common.author": "ލިޔުންތެރިޔާ",
@@ -214,7 +192,6 @@
   "admin.common.retry": "އަލުން ބަލާ",
   "admin.common.none": "އެއްވެސް އެއްޗެއް ނެތް",
   "admin.common.required": "ބޭނުންވޭ",
-
   "guardrail.requiredField": "{site}: “{item}” ގައި {field} ނެތެވެ، މި ސައިޓަށް އެއީ ބޭނުންވާ އެއްޗެކެވެ.",
   "guardrail.bannedPhrase": "{site}: “{item}” ގައި “{phrase}” ހިމެނެއެވެ، މި ސައިޓުގައި އެއީ ހުއްދަ އެއްޗެއް ނޫނެވެ.",
   "guardrail.minimumWords": "{site}: “{item}” ގައި ހުރީ {actual} ލަފުޒު؛ މި ސައިޓަށް މަދުވެގެން {expected} ބޭނުންވެއެވެ.",
@@ -222,8 +199,17 @@
   "guardrail.humanReviewRequired": "{site}: “{item}” ޝާއިޢުކުރެވޭނީ މީހަކު ފާސްކުރުމުންނެވެ.",
   "guardrail.localeCompleteness": "{site}: “{item}” ގައި {locale} ތަރުޖަމާ ނެތެވެ، މި ސައިޓަށް އެއީ ބޭނުންވާ އެއްޗެކެވެ.",
   "guardrail.thaanaPunctuation": "{site}: “{item}” ގެ {index} ވަނަ ތަނުގައި ތާނަ ލިޔުމުގެ ތެރޭގައި ލެޓިން އަކުރުގެ ފާހަގައެއް ބޭނުންކޮށްފައި.",
-
   "contract.missingField": "އޭޖެންޓް ޖޮބް {run} އިން {field} ނެތް އައިޓަމެއް އުފެއްދިއެވެ. ބޭނުންވާ ފީލްޑްތައް: {required}.",
   "contract.invalidField": "އޭޖެންޓް ޖޮބް {run} އިން ރަނގަޅު ނޫން {field} އެއް އުފެއްދިއެވެ: {reason}.",
-  "contract.rejected": "ވަނުމުގައި ބޭރުކުރެވިއްޖެ — ސައިޓް ރެޕޮޒިޓަރީއަށް ނުލިޔެވެއެވެ."
+  "contract.rejected": "ވަނުމުގައި ބޭރުކުރެވިއްޖެ — ސައިޓް ރެޕޮޒިޓަރީއަށް ނުލިޔެވެއެވެ.",
+  "admin.registry.loading": "ރަޖިސްޓްރީ ލޯޑުކުރަނީ…",
+  "admin.registry.loaded": "ރަޖިސްޓްރީ ލޯޑުވެއްޖެ — {count} ސައިޓް.",
+  "admin.settings.registryHeading": "ސައިޓް ރަޖިސްޓްރީ",
+  "admin.settings.sessionHeading": "ސެޝަން",
+  "admin.settings.owner": "ވެރިފަރާތް",
+  "admin.settings.repository": "ރިޕޮޒިޓަރީ",
+  "admin.settings.path": "ފައިލް މަގު",
+  "admin.settings.ref": "ބްރާންޗް",
+  "admin.settings.save": "ރައްކާކޮށް ލޯޑުކުރޭ",
+  "admin.settings.forget": "މި ތަން ހަނދާން ނައްތާލާ"
 }

@@ -1,4 +1,8 @@
 import type { Page, Route } from '@playwright/test';
+import exampleRegistry from '../../src/sites.example.json' with { type: 'json' };
+
+/** Serialised once; the mock hands back the same bytes every time. */
+const EXAMPLE_REGISTRY_JSON = JSON.stringify(exampleRegistry);
 
 /**
  * Site-absolute path, including the deployment base.
@@ -126,6 +130,65 @@ export interface GitHubMock {
   readonly files: Record<string, string>;
 }
 
+/** The path the admin reads its registry from, and the key that remembers where. */
+export const REGISTRY_PATH = 'dheys-sites.json';
+const REGISTRY_LOCATION_KEY = 'dheys-registry-location';
+
+/**
+ * Point this browser at a registry, the way a real operator does.
+ *
+ * The admin has no environment to read, so it stores a *location* and fetches the registry
+ * over the API with the operator's own token. Tests have to do the same thing, and this is
+ * the whole reason the zero-registry state was never covered: the e2e build used to inline
+ * the example registry at build time, so no test could reach the empty screen even by
+ * accident. That injection is gone; a test that wants sites asks for them here.
+ *
+ * `addInitScript` rather than `evaluate`, because the admin reads the location on mount and
+ * a value written after navigation arrives too late.
+ */
+export async function useExampleRegistry(
+  page: Page,
+  location: { owner: string; name: string } = { owner: 'example-org', name: 'registry' },
+): Promise<void> {
+  await page.addInitScript(
+    ([key, value]) => {
+      try {
+        window.localStorage.setItem(key as string, value as string);
+      } catch {
+        /* a browser blocking site data simply gets no registry, which is a valid state */
+      }
+    },
+    [
+      REGISTRY_LOCATION_KEY,
+      JSON.stringify({ kind: 'repo', path: REGISTRY_PATH, ref: 'main', ...location }),
+    ],
+  );
+}
+
+/**
+ * Wait until the registry the browser was pointed at has actually arrived.
+ *
+ * The admin used to receive its registry synchronously, inlined at build time, so it was
+ * present on the first render. It now fetches it over the API with the operator's token —
+ * which is the only way a browser can get one — so there is a gap between "connected" and
+ * "has sites", and a test that clicks straight through lands on an empty screen. The
+ * dashboard's site count is the first thing that proves the registry parsed.
+ */
+export async function waitForRegistry(page: Page): Promise<void> {
+  await page.getByTestId('site-count').waitFor({ state: 'visible' });
+}
+
+/** Guarantee this browser has *no* registry, whatever a previous test left behind. */
+export async function useNoRegistry(page: Page): Promise<void> {
+  await page.addInitScript((key) => {
+    try {
+      window.localStorage.removeItem(key as string);
+    } catch {
+      /* nothing stored is the state we wanted anyway */
+    }
+  }, REGISTRY_LOCATION_KEY);
+}
+
 /**
  * A small, honest stand-in for api.github.com.
  *
@@ -135,7 +198,17 @@ export interface GitHubMock {
  * pinning; the exact JSON GitHub returns is not.
  */
 export async function mockGitHub(page: Page, options: GitHubMockOptions = {}): Promise<GitHubMock> {
-  const mock: GitHubMock = { requests: [], files: { ...(options.files ?? {}) } };
+  /*
+   * The example registry is always available at `dheys-sites.json`.
+   *
+   * The contents route below matches on the path and ignores owner and name, so this one
+   * entry answers for the registry repository as well as the site repository. A test that
+   * has not pointed the browser at a registry never asks for it.
+   */
+  const mock: GitHubMock = {
+    requests: [],
+    files: { [REGISTRY_PATH]: EXAMPLE_REGISTRY_JSON, ...(options.files ?? {}) },
+  };
 
   await page.route(
     'https://api.github.com/**',

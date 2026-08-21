@@ -4,12 +4,12 @@ Everything is environment variables and the registry. There is no config file to
 
 ## Build
 
-| Variable               | Default                        | What it does                                                                          |
-| ---------------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
-| `SITE_URL`             | `https://nazilafeef.github.io` | Origin, for canonical URLs, feeds and the sitemap.                                    |
-| `BASE_PATH`            | `/dheys-cms`                   | Deployment sub-path. Use `/` for root hosting.                                        |
-| `PUBLIC_THEME`         | `bare`                         | `bare` or `dheys`.                                                                    |
-| `PUBLIC_SITE_REGISTRY` | —                              | Registry JSON injected at build time, so the admin has sites without a runtime fetch. |
+| Variable               | Default                        | What it does                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`             | `https://nazilafeef.github.io` | Origin, for canonical URLs, feeds and the sitemap.                                                                                                                                                               |
+| `BASE_PATH`            | `/dheys-cms`                   | Deployment sub-path. Use `/` for root hosting.                                                                                                                                                                   |
+| `PUBLIC_THEME`         | `bare`                         | `bare` or `dheys`.                                                                                                                                                                                               |
+| `PUBLIC_SITE_REGISTRY` | —                              | Registry JSON inlined at build time. **Private deployments only** — a `PUBLIC_` value is baked into the public bundle. The admin on a public site uses its Settings screen instead; see `docs/site-registry.md`. |
 
 `BASE_PATH` is the one to get right. A project page serves from `/dheys-cms/` and everything
 else from `/`; code that assumes either ships broken on the other. Both are tested, and

@@ -452,3 +452,57 @@ merely happened.
     coincides with a meaningful value destroys information.** `{}` for rates, `0` for a cap.
     Where a field has a legitimate empty or zero value, it must be optional, so that
     "unset" and "set to nothing" stay different facts.
+
+## v1.0.4 — the admin could never load a registry
+
+74. **Every admin view was gated on a registry the browser had no way to obtain.** Reported
+    as "the tabs do nothing". They were not broken: the island hydrated, there were zero
+    console errors, zero failed requests, and both bundles resolved under the sub-path. The
+    body was written `{registry && view === '…' && …}` six times over, so with no registry
+    _nothing_ rendered — clicking a tab changed the view state and the screen stayed
+    identical. Diagnosed before touching anything, because "inert" and "broken" have
+    different fixes and the evidence said inert.
+
+    The gate covered Settings too, which is what made it unrecoverable rather than merely
+    empty: Settings is the one screen that matters when you have no sites, and after this
+    release it is where the registry location is entered. The chicken could not reach the
+    egg. Settings and Disconnect now render regardless, and every other view shows an empty
+    state that says where to go instead of nothing at all.
+
+75. **The registry had no browser-reachable location at all, which is the real defect.**
+    `docs/site-registry.md` offered three: an Actions secret and two repository variables.
+    All three are environment values. A runner has an environment; a static page on GitHub
+    Pages does not. So the scheduler could always read the registry and the admin never
+    could — the UI was not misconfigured, it was unreachable by construction.
+
+    The admin now stores a **location** — owner, repository, path, ref — in `localStorage`
+    and fetches the registry over the API with the operator's own token, on every load. The
+    location is stored; the registry contents and the token are not. A token that survived a
+    reload would outlive the session it was scoped to.
+
+    A private companion repository is the only option offered in the browser, and the
+    documentation now says why rather than implying parity: this screen asks for a
+    fine-grained token, and a fine-grained token **cannot be granted gist access at all** —
+    that permission exists only on classic tokens. A gist stays perfectly good for the
+    runner, which holds its own credential.
+
+    `PUBLIC_SITE_REGISTRY` is not the fix and is documented as private-deployment-only. A
+    `PUBLIC_` value is inlined into the JavaScript bundle, and that bundle is served from a
+    public origin: it would publish the operator's repository names, branches and deploy
+    targets to anyone who opened devtools. A registry is a map of someone's infrastructure.
+
+76. **The e2e build inlined the example registry, which is why nothing caught this.** Every
+    admin test got its sites from a build-time injection, so the zero-registry state was
+    unreachable in the suite even by accident — the one state every operator sees first was
+    the one state no test could enter. The injection is gone. Tests that want sites now ask
+    for them the way a browser does: a location in `localStorage` and a mocked API response,
+    which also means the new path is covered end to end rather than only unit-tested.
+
+    Two consequences worth recording. The registry now arrives asynchronously, so tests that
+    click straight into content or the review queue race it — `waitForRegistry` waits for
+    the dashboard's site count, the first thing that proves the registry parsed. And
+    memoising `translator` stopped being cosmetic: `t` was recreated every render and is a
+    dependency of the fetch effect, so the registry refetched on every render, replaced the
+    registry object each time, handed every child a new `site` prop, and reset the editor
+    mid-edit. The symptom was a save that never reported "Saved", three renders from the
+    cause.

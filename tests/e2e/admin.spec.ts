@@ -1,5 +1,14 @@
-import { test, expect } from '@playwright/test';
-import { at, mockGitHub, watchConsole, blockEverythingExternal, waitForIsland } from './_mocks';
+import { test, expect, type Page } from '@playwright/test';
+import {
+  at,
+  mockGitHub,
+  watchConsole,
+  blockEverythingExternal,
+  waitForIsland,
+  useExampleRegistry,
+  useNoRegistry,
+  waitForRegistry,
+} from './_mocks';
 import { parseDocument } from '../../src/lib/frontmatter';
 
 /**
@@ -71,6 +80,7 @@ const EN_DIR = 'src/content/posts/en';
 test.describe('connecting', () => {
   test('refuses a string that is not shaped like a token, without a request', async ({ page }) => {
     const github = await mockGitHub(page, { login: 'example-editor' });
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
 
@@ -84,6 +94,7 @@ test.describe('connecting', () => {
 
   test('resolves a valid token to its identity', async ({ page }) => {
     const github = await mockGitHub(page, { login: 'example-editor' });
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
 
@@ -98,6 +109,7 @@ test.describe('connecting', () => {
 
   test('reports a rejected token in terms of the token', async ({ page }) => {
     await mockGitHub(page, {}); // no login configured -> 401
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
 
@@ -109,6 +121,7 @@ test.describe('connecting', () => {
 
   test('keeps the token in sessionStorage only, never localStorage', async ({ page }) => {
     await mockGitHub(page, { login: 'example-editor' });
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
@@ -129,6 +142,7 @@ test.describe('connecting', () => {
   });
 
   test('shows no sign-in vocabulary or third-party branding', async ({ page }) => {
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     const text = (await page.locator('body').textContent()) ?? '';
@@ -140,6 +154,7 @@ test.describe('connecting', () => {
 
   test('forgets the session on disconnect', async ({ page }) => {
     await mockGitHub(page, { login: 'example-editor' });
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
@@ -164,10 +179,12 @@ test.describe('the commit path', () => {
       files: { [path]: postFile() },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-content').click();
 
     await page.getByRole('button', { name: 'Edit' }).first().click();
@@ -202,10 +219,12 @@ test.describe('the commit path', () => {
       files: { [path]: postFile() },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-content').click();
     await page.getByRole('button', { name: 'Edit' }).first().click();
 
@@ -224,10 +243,12 @@ test.describe('the commit path', () => {
     const path = `${CONTENT_DIR}/the-tide-gauge-at-the-old-harbour.md`;
     await mockGitHub(page, { login: 'example-editor', files: { [path]: postFile() } });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-content').click();
     await page.getByRole('button', { name: 'Edit' }).first().click();
 
@@ -249,10 +270,12 @@ test.describe('the commit path', () => {
       },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-content').click();
     await page.getByRole('button', { name: 'Edit' }).first().click();
 
@@ -276,10 +299,12 @@ test.describe('the commit path', () => {
       },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-content').click();
     await page.getByRole('button', { name: 'Edit' }).first().click();
 
@@ -302,10 +327,12 @@ test.describe('the review queue', () => {
       },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-queue').click();
 
     await expect(page.getByTestId('queue-item').first()).toBeVisible();
@@ -331,10 +358,12 @@ test.describe('the review queue', () => {
       },
     });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
     await page.getByTestId('connect').click();
+    await waitForRegistry(page);
     await page.getByTestId('tab-queue').click();
 
     await expect(page.getByTestId('queue-item').first()).toBeVisible();
@@ -369,6 +398,7 @@ test.describe('network discipline', () => {
     // Layered over the blanket block, so GitHub is answered and everything else aborts.
     await mockGitHub(page, { login: 'example-editor' });
 
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await page.getByLabel('Access token').fill(TOKEN);
@@ -381,8 +411,108 @@ test.describe('network discipline', () => {
   });
 
   test('the admin page is not indexable', async ({ page }) => {
+    await useExampleRegistry(page);
     await page.goto(at('/admin'));
     await waitForIsland(page);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+});
+
+/**
+ * The zero-sites state, which is what every operator sees first.
+ *
+ * This shipped broken: every view in the admin was written `{registry && view === '…' && …}`,
+ * so with no registry *nothing* rendered. Clicking a tab updated the view state and the
+ * screen never changed — six tabs that looked like dead JavaScript. Settings was gated the
+ * same way, which made it unreachable, and Settings is the only screen that matters when you
+ * have no sites: it is where you say where the registry lives. The chicken could not reach
+ * the egg.
+ *
+ * Nothing tested this, because every other admin test sets up a registry first. These do not.
+ */
+test.describe('the admin with no registry configured', () => {
+  const TABS = ['dashboard', 'queue', 'content', 'runs', 'sites', 'settings'] as const;
+
+  /** Connect with no registry anywhere: no build-time injection, nothing in localStorage. */
+  async function connectWithNoRegistry(page: Page): Promise<void> {
+    await mockGitHub(page, { login: 'example-editor' });
+    await useNoRegistry(page);
+    await page.goto(at('/admin'));
+    await waitForIsland(page);
+    await page.getByLabel('Access token').fill(TOKEN);
+    await page.getByTestId('connect').click();
+    await expect(page.getByTestId('connected-as')).toBeVisible();
+  }
+
+  test('every nav tab responds', async ({ page }) => {
+    const console_ = watchConsole(page);
+    await connectWithNoRegistry(page);
+
+    for (const tab of TABS) {
+      await page.getByTestId(`tab-${tab}`).click();
+      // The tab itself must register the click...
+      await expect(page.getByTestId(`tab-${tab}`)).toHaveAttribute('aria-current', 'page');
+      // ...and the body must actually show something for it, rather than staying blank.
+      await expect(page.locator('.admin__body .admin__panel').first()).toBeVisible();
+    }
+
+    expect(console_.errors, `console errors: ${console_.errors.join(' | ')}`).toEqual([]);
+  });
+
+  test('settings is reachable and usable', async ({ page }) => {
+    await connectWithNoRegistry(page);
+    await page.getByTestId('tab-settings').click();
+
+    await expect(page.getByTestId('settings')).toBeVisible();
+    await expect(page.getByTestId('registry-form')).toBeVisible();
+
+    // Every field an operator has to fill in to escape the empty state.
+    for (const field of ['registry-owner', 'registry-name', 'registry-path', 'registry-ref']) {
+      await expect(page.getByTestId(field)).toBeEditable();
+    }
+    await expect(page.getByTestId('registry-save')).toBeEnabled();
+  });
+
+  test('settings rejects an unusable location by name instead of saving it', async ({ page }) => {
+    await connectWithNoRegistry(page);
+    await page.getByTestId('tab-settings').click();
+
+    await page.getByTestId('registry-owner').fill('');
+    await page.getByTestId('registry-name').fill('some-repo');
+    await page.getByTestId('registry-save').click();
+
+    await expect(page.getByTestId('registry-form-error')).toContainText('owner');
+    // Nothing was persisted, so a reload must not resurrect a half-typed location.
+    const stored = await page.evaluate(() => localStorage.getItem('dheys-registry-location'));
+    expect(stored).toBeNull();
+  });
+
+  test('a saved location is remembered and used', async ({ page }) => {
+    await connectWithNoRegistry(page);
+    await page.getByTestId('tab-settings').click();
+
+    await page.getByTestId('registry-owner').fill('example-org');
+    await page.getByTestId('registry-name').fill('registry-repo');
+    await page.getByTestId('registry-save').click();
+
+    await expect(page.getByTestId('registry-current')).toContainText('example-org/registry-repo');
+
+    const stored = await page.evaluate(() => localStorage.getItem('dheys-registry-location'));
+    expect(stored, 'the location must survive a reload').toContain('registry-repo');
+
+    // And it must not have stored the token alongside it.
+    expect(stored).not.toContain(TOKEN);
+  });
+
+  test('disconnect works from settings with no registry', async ({ page }) => {
+    await connectWithNoRegistry(page);
+    await page.getByTestId('tab-settings').click();
+
+    await page.getByTestId('settings-disconnect').click();
+
+    // Back to the connect screen, and the session really is gone.
+    await expect(page.getByTestId('connect')).toBeVisible();
+    const session = await page.evaluate(() => sessionStorage.getItem('dheys-admin-session'));
+    expect(session).toBeNull();
   });
 });

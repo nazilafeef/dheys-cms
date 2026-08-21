@@ -2,7 +2,6 @@
   "site.title": "Dheys CMS",
   "site.tagline": "One editorial desk for every site you run.",
   "site.skipToContent": "Skip to content",
-
   "nav.home": "Home",
   "nav.articles": "Articles",
   "nav.archive": "Archive",
@@ -11,7 +10,6 @@
   "nav.menu": "Menu",
   "nav.closeMenu": "Close menu",
   "nav.language": "Language",
-
   "article.readingTime": "{minutes} min read",
   "article.publishedOn": "Published {date}",
   "article.updatedOn": "Updated {date}",
@@ -30,48 +28,39 @@
   "article.category": "Category",
   "article.series": "Part of {series}",
   "article.partOf": "Part {index} of {total}",
-
   "ai.attribution": "Written by {model}, reviewed by {reviewer}",
   "ai.attributionUnreviewed": "Written by {model}",
   "ai.generatedLabel": "AI-assisted",
   "ai.sources": "Sources",
   "ai.promptVersion": "Prompt version {version}",
   "ai.disclosureHeading": "How this article was made",
-
   "affiliate.disclosure": "This article contains affiliate links. If you buy through one, this site may earn a commission at no extra cost to you.",
   "affiliate.disclosureHeading": "Affiliate disclosure",
-
   "search.title": "Search",
   "search.placeholder": "Search articles",
   "search.noResults": "Nothing matched “{query}”.",
   "search.resultCount": "{count} result",
   "search.resultCountPlural": "{count} results",
   "search.clear": "Clear search",
-
   "archive.title": "Archive",
   "archive.byCategory": "Category: {name}",
   "archive.byTag": "Tagged {name}",
   "archive.byAuthor": "Articles by {name}",
   "archive.empty": "No articles here yet.",
-
   "pagination.previous": "Newer",
   "pagination.next": "Older",
   "pagination.page": "Page {current} of {total}",
-
   "error.404.title": "Page not found",
   "error.404.body": "That address does not match anything on this site. It may have moved, or the link may be mistyped.",
   "error.404.home": "Go to the home page",
   "error.404.search": "Search instead",
-
   "theme.toggle": "Toggle colour scheme",
   "theme.light": "Light",
   "theme.dark": "Dark",
   "theme.system": "System",
-
   "footer.licence": "Released under the MIT licence.",
   "footer.builtWith": "Built with Dheys CMS",
   "footer.feeds": "Feeds",
-
   "admin.title": "Dheys CMS admin",
   "admin.signIn": "Connect",
   "admin.signInHeading": "Connect to your repositories",
@@ -84,7 +73,6 @@
   "admin.connectedAs": "Connected as {login}",
   "admin.connectionFailed": "Could not connect: {reason}",
   "admin.sessionOnlyNotice": "Session-only. Closing this tab forgets the token.",
-
   "admin.nav.dashboard": "Dashboard",
   "admin.nav.queue": "Review queue",
   "admin.nav.content": "Content",
@@ -94,7 +82,6 @@
   "admin.nav.runs": "Agent runs",
   "admin.nav.sites": "Sites",
   "admin.nav.settings": "Settings",
-
   "admin.dashboard.heading": "All sites",
   "admin.dashboard.awaitingReview": "Awaiting review",
   "admin.dashboard.scheduled": "Scheduled",
@@ -103,7 +90,6 @@
   "admin.dashboard.capRemaining": "{amount} of {cap} remaining",
   "admin.dashboard.killSwitchOn": "Automated publishing is halted by the kill switch.",
   "admin.dashboard.noSites": "No sites are connected yet. Add one to your registry to begin.",
-
   "admin.queue.heading": "Review queue",
   "admin.queue.empty": "Nothing is waiting for review.",
   "admin.queue.approve": "Approve",
@@ -115,7 +101,6 @@
   "admin.queue.blockedBy": "Blocked by {count} guardrail",
   "admin.queue.blockedByPlural": "Blocked by {count} guardrails",
   "admin.queue.failedJob": "Job failed at intake",
-
   "admin.editor.title": "Title",
   "admin.editor.slug": "Slug",
   "admin.editor.slugTaken": "That slug is already used by {title}.",
@@ -139,7 +124,6 @@
   "admin.editor.numberedList": "Numbered list",
   "admin.editor.image": "Insert image",
   "admin.editor.dropImage": "Drop an image to upload",
-
   "admin.seo.heading": "Search and social",
   "admin.seo.metaTitle": "Meta title",
   "admin.seo.metaDescription": "Meta description",
@@ -148,7 +132,6 @@
   "admin.seo.charactersUsed": "{used} of {limit} characters",
   "admin.seo.tooLong": "{used} of {limit} characters — too long",
   "admin.seo.socialPreview": "Social preview",
-
   "admin.commission.heading": "New commission",
   "admin.commission.brief": "Brief",
   "admin.commission.targetSite": "Target site",
@@ -165,7 +148,6 @@
   "admin.commission.approvalHumanOptional": "Auto-publish if nobody decides",
   "admin.commission.approvalAuto": "Publish automatically",
   "admin.commission.create": "Create commission",
-
   "admin.runs.heading": "Agent runs",
   "admin.runs.status": "Status",
   "admin.runs.cost": "Cost",
@@ -175,17 +157,14 @@
   "admin.runs.duration": "Duration",
   "admin.runs.viewLog": "View log",
   "admin.runs.empty": "No agent runs yet.",
-
   "admin.cost.capReached": "Monthly cap reached for {site}. Dispatch is blocked.",
   "admin.cost.override": "Override the cap for this run",
   "admin.cost.overrideConfirm": "This run will exceed the monthly cap. Continue?",
-
   "admin.media.heading": "Media",
   "admin.media.upload": "Upload",
   "admin.media.altLabel": "Alt text",
   "admin.media.altRequired": "Alt text is required before this image can be used.",
   "admin.media.empty": "No media for this site yet.",
-
   "admin.state.idea": "Idea",
   "admin.state.commissioned": "Commissioned",
   "admin.state.researching": "Researching",
@@ -197,7 +176,6 @@
   "admin.state.scheduled": "Scheduled",
   "admin.state.published": "Published",
   "admin.state.rejected": "Rejected",
-
   "admin.common.site": "Site",
   "admin.common.locale": "Locale",
   "admin.common.author": "Author",
@@ -214,7 +192,6 @@
   "admin.common.retry": "Retry",
   "admin.common.none": "None",
   "admin.common.required": "Required",
-
   "guardrail.requiredField": "{site}: “{item}” is missing {field}, which this site requires.",
   "guardrail.bannedPhrase": "{site}: “{item}” contains the phrase “{phrase}”, which this site does not allow.",
   "guardrail.minimumWords": "{site}: “{item}” is {actual} words; this site requires at least {expected}.",
@@ -222,8 +199,17 @@
   "guardrail.humanReviewRequired": "{site}: “{item}” must be approved by a person before it can publish.",
   "guardrail.localeCompleteness": "{site}: “{item}” is missing the {locale} translation, which this site requires.",
   "guardrail.thaanaPunctuation": "{site}: “{item}” uses Latin punctuation inside Thaana text at position {index}.",
-
   "contract.missingField": "Agent job {run} produced an item with no {field}. Required fields: {required}.",
   "contract.invalidField": "Agent job {run} produced an invalid {field}: {reason}.",
-  "contract.rejected": "Rejected at intake — never written to the site repository."
+  "contract.rejected": "Rejected at intake — never written to the site repository.",
+  "admin.registry.loading": "Loading the registry…",
+  "admin.registry.loaded": "Registry loaded — {count} site(s).",
+  "admin.settings.registryHeading": "Site registry",
+  "admin.settings.sessionHeading": "Session",
+  "admin.settings.owner": "Owner",
+  "admin.settings.repository": "Repository",
+  "admin.settings.path": "File path",
+  "admin.settings.ref": "Branch",
+  "admin.settings.save": "Save and load",
+  "admin.settings.forget": "Forget this location"
 }
