@@ -38,6 +38,7 @@
     "check:clean-room": "node scripts/check-clean-room.mjs",
     "verify:release": "node scripts/verify-release.mjs",
     "verify:automation": "node scripts/verify-automation.mjs",
+    "verify:live": "node scripts/verify-live.mjs --url https://nazilafeef.github.io/dheys-cms",
     "check:links": "node scripts/check-links.mjs",
     "lighthouse": "node scripts/lighthouse.mjs",
     "connect": "tsx scripts/connect-site.mjs",

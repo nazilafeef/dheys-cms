@@ -12,6 +12,12 @@
  *   pnpm lighthouse                  every page, thresholds enforced
  *   pnpm lighthouse --url /articles/x  one page
  *   pnpm lighthouse --report         write the full JSON reports to .lighthouse/
+ *   pnpm lighthouse --live <origin>  measure a deployed origin instead of a local preview
+ *
+ * `--live` exists for ship step 5, which requires the thresholds to be met on the real
+ * deployment rather than on localhost. It skips the `dist/` check and the preview spawn
+ * and points the same pages, the same warm-up and the same non-negotiable thresholds at
+ * the given origin. Nothing about the limits changes with the target.
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
@@ -29,6 +35,13 @@ const ORIGIN = `http://127.0.0.1:${PORT}`;
 const args = process.argv.slice(2);
 const writeReports = args.includes('--report');
 const onlyUrl = readFlag('--url');
+const liveOrigin = readFlag('--live')?.replace(/\/+$/, '');
+
+/**
+ * Where the pages actually live. A `--live` origin is passed in complete, base path and
+ * all, so the local `PREFIX` must not be appended to it a second time.
+ */
+const TARGET = liveOrigin ?? `${ORIGIN}${PREFIX}`;
 
 /** Category thresholds. Every one is a floor, not a target. */
 const CATEGORY_MINIMUM = 95;
@@ -136,7 +149,7 @@ async function waitForServer(url, timeoutMs = 60_000) {
 }
 
 async function main() {
-  if (!existsSync(join(ROOT, 'dist'))) {
+  if (!liveOrigin && !existsSync(join(ROOT, 'dist'))) {
     console.error('lighthouse: no dist/. Run `pnpm build` first.');
     process.exit(1);
   }
@@ -150,17 +163,19 @@ async function main() {
     process.exit(1);
   }
 
-  const preview = spawn(
-    'pnpm',
-    ['exec', 'astro', 'preview', '--port', String(PORT), '--host', '127.0.0.1'],
-    { cwd: ROOT, shell: true, stdio: 'ignore' },
-  );
+  const preview = liveOrigin
+    ? undefined
+    : spawn('pnpm', ['exec', 'astro', 'preview', '--port', String(PORT), '--host', '127.0.0.1'], {
+        cwd: ROOT,
+        shell: true,
+        stdio: 'ignore',
+      });
 
   let chrome;
   const failures = [];
 
   try {
-    await waitForServer(`${ORIGIN}${PREFIX}/`);
+    await waitForServer(`${TARGET}/`);
 
     chrome = await chromeLauncher.launch({
       chromePath,
@@ -182,13 +197,13 @@ async function main() {
      */
     process.stdout.write('warming up (result discarded)\n');
     await lighthouse(
-      `${ORIGIN}${PREFIX}/`,
+      `${TARGET}/`,
       { port: chrome.port, output: 'json', logLevel: 'error' },
       undefined,
     );
 
     for (const page of PAGES) {
-      const url = `${ORIGIN}${PREFIX}${page.path === '/' ? '/' : page.path}`;
+      const url = `${TARGET}${page.path === '/' ? '/' : page.path}`;
       process.stdout.write(`\n${page.name} — ${url}\n`);
 
       const result = await lighthouse(
@@ -243,7 +258,7 @@ async function main() {
     }
   } finally {
     if (chrome) await chrome.kill();
-    preview.kill();
+    preview?.kill();
   }
 
   if (failures.length > 0) {
