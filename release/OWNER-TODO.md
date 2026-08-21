@@ -5,10 +5,14 @@ roughly how long it takes. Numbered so DECISIONS.md and the final report can cit
 
 ---
 
-**1. Authenticate the GitHub CLI.** — *2 minutes, blocks the whole ship sequence*
+**1. Authenticate the GitHub CLI.** — ~~*2 minutes, blocks the whole ship sequence*~~ **DONE**
 
-`gh` is installed (2.97.0) but not logged in, and the login is a browser flow that cannot be
-completed from a non-interactive session.
+**Completed.** A token was supplied as `GH_TOKEN` and the ship sequence ran against the real
+remote: pushed, configured, deployed, verified live, and released as v1.0.1. The token
+resolved to `nazilafeef` with scopes `repo, workflow`.
+
+One consequence is item 8 below: `repo` does not imply `delete_repo`, so the scratch
+repository ship step 6 creates could not be deleted. Kept here for the record —
 
 ```
 gh auth login -h github.com -s repo,workflow,admin:repo_hook -w
@@ -110,3 +114,47 @@ What that means in practice:
 To actually run agents, follow OWNER-TODO 5 and 6 on a private instance.
 
 Blocks: nothing. Recorded so the absence is legible as a decision.
+
+---
+
+**8. Delete the scratch repository left by ship step 6.** — *30 seconds*
+
+Ship step 6 ends "then delete the scratch repository". That step did not complete. The
+repository is **private**, named `dheys-cms-ship-check-` followed by a timestamp, and holds
+seven invented Markdown files and nothing else.
+
+Deleting a repository needs the `delete_repo` scope, which `repo` does not imply, and the
+supplied token carried `repo` and `workflow`. The REST call returned
+`403 Must have admin rights to Repository`, and `gh` refused for the same reason. This is a
+scope limitation, not a defect, and it is reported as a failed check in the report rather
+than softened into a footnote.
+
+Either delete it from the repository's Settings page, or:
+
+```
+gh auth refresh -h github.com -s delete_repo
+gh repo delete <owner>/<the scratch repository> --yes
+```
+
+Blocks: nothing. It costs nothing to leave, but it is clutter and it was meant to be
+temporary.
+
+---
+
+**9. Decide what to do with five open Dependabot pull requests.** — *5 minutes*
+
+They bump **GitHub Actions versions**, not dependencies: `actions/setup-node` 4→7,
+`actions/upload-artifact` 4→7, `actions/deploy-pages` 4→5, `pnpm/action-setup` 4→6, and
+`actions/upload-pages-artifact` 3→5.
+
+None is a security alert. Every security alert this repository had is closed — 19 fixed,
+0 open, 0 dismissed. What merging them would buy is the removal of the
+"Node.js 20 is deprecated" annotation that currently appears on every workflow run, because
+the pinned action majors still target the Node 20 runtime.
+
+They were left alone deliberately: bumping five action majors at once is not a ship step,
+each one changes how the pipeline itself runs, and the pipeline is currently green on every
+job. Merge them one at a time and watch CI, rather than in a batch.
+
+Blocks: nothing. Cosmetic, but it is real deprecation noise and will stop being cosmetic
+when the runners drop Node 20.

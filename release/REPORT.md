@@ -489,7 +489,62 @@ everything else. A contributor's inner loop is the first five rows — about 40 
 Produced by `node scripts/verify-live.mjs --url https://nazilafeef.github.io/dheys-cms`.
 
 ```
-{VERIFY_LIVE}
+=== verify:live — 2026-08-21T06:36:28Z ===
+verify-live: https://nazilafeef.github.io/dheys-cms
+started 2026-08-21T06:36:28.434Z
+
+Documents
+  ok   site root returns 200 with expected content
+  ok   /admin returns 200 with expected content
+  ok   sitemap.xml returns 200 with expected content
+  ok   news-sitemap.xml returns 200 with expected content
+  ok   rss.xml returns 200 with expected content
+  ok   atom.xml returns 200 with expected content
+  ok   feed.json returns 200 with expected content
+  ok   robots.txt returns 200 with expected content
+  ok   llms.txt returns 200 with expected content
+
+A missing path
+  ok   a missing path returns a real 404 status
+  ok   the 404 body is this project’s own 404 document
+  ok   the 404 page is noindex
+
+Locale routes
+  ok   en route responds 200
+  ok   en declares lang="en"
+  ok   en declares dir="ltr"
+  ok   ar route responds 200
+  ok   ar declares lang="ar"
+  ok   ar declares dir="rtl"
+  ok   dv route responds 200
+  ok   dv declares lang="dv"
+  ok   dv declares dir="rtl"
+  ok   the Dhivehi route renders Thaana script
+  ok   Dhivehi content uses Thaana punctuation, not Latin
+
+Response headers
+  ok   the document is served as HTML with a UTF-8 charset
+  ok   the origin is HTTPS and serves the site root
+  ok   the host identifies itself
+  ok   rss.xml is served as XML rather than HTML or plain text
+  ok   robots.txt is served as plain text
+  ok   feed.json is served as JSON
+
+Assets and internal links
+  ok   every internal reference carries the deployment base path
+  ok   every internal reference resolves on the live origin
+
+Console, in a real browser
+  ok   / loads with no console errors or warnings
+  ok   /ar/ loads with no console errors or warnings
+  ok   /dv/ loads with no console errors or warnings
+  ok   /archive loads with no console errors or warnings
+  ok   /admin loads with no console errors or warnings
+  ok   /search loads with no console errors or warnings
+
+finished 2026-08-21T06:37:05.510Z
+verify-live: 37 check(s), 37 passed, 0 failed.
+exit=0
 ```
 
 ---
@@ -499,7 +554,61 @@ Produced by `node scripts/verify-live.mjs --url https://nazilafeef.github.io/dhe
 Produced by `node scripts/lighthouse.mjs --live https://nazilafeef.github.io/dheys-cms`.
 
 ```
-{LIGHTHOUSE_LIVE}
+=== lighthouse --live — 2026-08-21T06:37:15Z ===
+warming up (result discarded)
+
+home — https://nazilafeef.github.io/dheys-cms/
+  ok   Performance        100
+  ok   Accessibility      100
+  ok   Best Practices     100
+  ok   SEO                100
+  ok   Agentic Browsing   100
+  ok   LCP                894ms
+  ok   CLS                0.000
+  ok   TBT                0ms
+
+article — https://nazilafeef.github.io/dheys-cms/articles/the-tide-gauge-at-the-old-harbour
+  ok   Performance        100
+  ok   Accessibility      100
+  ok   Best Practices     100
+  ok   SEO                100
+  ok   Agentic Browsing   100
+  ok   LCP                1129ms
+  ok   CLS                0.000
+  ok   TBT                0ms
+
+article (RTL, Thaana) — https://nazilafeef.github.io/dheys-cms/dv/articles/bandharuge-dhiyavaru-maapu
+  ok   Performance        100
+  ok   Accessibility      100
+  ok   Best Practices     100
+  ok   SEO                100
+  ok   Agentic Browsing   100
+  ok   LCP                974ms
+  ok   CLS                0.000
+  ok   TBT                0ms
+
+archive — https://nazilafeef.github.io/dheys-cms/archive
+  ok   Performance        100
+  ok   Accessibility      100
+  ok   Best Practices     100
+  ok   SEO                100
+  ok   Agentic Browsing   100
+  ok   LCP                972ms
+  ok   CLS                0.000
+  ok   TBT                0ms
+
+404 — https://nazilafeef.github.io/dheys-cms/404
+  ok   Performance        100
+  ok   Accessibility      100
+  ok   Best Practices     100
+  n/a  SEO                63  (a 404 must be noindex, which is precisely what the SEO category penalises)
+  ok   Agentic Browsing   100
+  ok   LCP                884ms
+  ok   CLS                0.000
+  ok   TBT                0ms
+
+lighthouse: OK — 5 page(s), all categories >= 95, all metrics inside budget.
+exit=0
 ```
 
 ---
@@ -512,7 +621,59 @@ check:clean-room` exists to stop, and the gate is not worth suspending to make a
 tidier.
 
 ```
-{AUTOMATION_LIVE}
+verify-automation-live
+finished 2026-08-21T05:49:15.198Z
+
+
+Identity
+  ok   the token resolves to a real account
+       HTTP 200, login "nazilafeef", scopes "repo, workflow"
+
+Scratch repository
+  ok   a scratch repository can be created
+       HTTP 201, created "<scratch repository, redacted>" (private: true)
+
+Rate limits, read from real responses
+  ok   the API reports a core rate-limit budget
+       limit 5000, remaining 4869, resets 2026-08-21T06:04:06.000Z
+  ok   every response carries the x-ratelimit headers the client reads
+       limit 5000, remaining 4868, reset 1787292246
+  ok   the remaining budget decreases as calls are spent
+       4868 then 4867
+  ok   the reset time parses to a real future instant
+       2026-08-21T06:04:06.000Z (in 15 min)
+
+Pagination, across a listing longer than one page
+  ok   the scratch repository was seeded
+       7 files committed one per request
+  ok   a multi-page listing sends a Link header with rel="next"
+       Link header present
+  ok   walking every page yields each item exactly once
+       8 commits over 5 page(s) at 2 per page, 8 unique
+  ok   the paged total matches a single-page read of the same listing
+       paged 8, single page 8
+  ok   a directory listing returns every file that was written
+       7 entries
+  ok   a page past the end is an empty list, not an error
+       HTTP 200 with 0 entries
+
+Permission and error handling, against real responses
+  ok   a rejected token returns 401
+       HTTP 401: Bad credentials
+  ok   a repository the token cannot see returns 404, not 403
+       HTTP 404: Not Found
+  ok   writing over a file without its sha is rejected, not silently applied
+       HTTP 422: Invalid request.
+
+"sha" wasn't supplied.
+  ok   writing to a repository the token does not own is refused
+       HTTP 404: Not Found
+
+Cleanup
+  FAIL the scratch repository was deleted
+       DELETE returned HTTP 403: Must have admin rights to Repository. — "<scratch repository, redacted>" still exists and must be removed by hand
+
+verify-automation-live: 17 check(s), 16 passed, 1 failed.
 ```
 
 ---
@@ -523,5 +684,49 @@ Produced by `pnpm verify:release`: build the zip and bundle from HEAD, clone the
 empty directory, and run the entire gate inside the clone.
 
 ```
-{VERIFY_RELEASE}
+=== pnpm verify:release — 2026-08-21T10:25:19Z ===
+
+> dheys-cms@1.0.1 verify:release D:\2026\dheys-cms
+> node scripts/verify-release.mjs
+
+verify-release: HEAD faa6ede
+  ok   working tree is clean
+
+== building artefacts from HEAD
+  ok   zip written -- release\dheys-cms-v1.0.1.zip
+  ok   bundle written -- release\dheys-cms-v1.0.1.bundle
+
+== cloning the bundle into a standalone repository
+  ok   the clone has its own .git
+  ok   git inside the clone resolves to the clone, not the outer repository -- D:/2026/dheys-cms/.tmp/release-verify/clone-20260821102519
+
+== proving the clean-room gate reads the clone history, not this one
+  bundle/clone commits : 30
+  this repository      : 30
+  gate says            : clean-room: OK -- 190 file(s) scanned plus 30 commit message(s), no violations.
+  ok   clean-room passes in the clone -- exit=0
+  ok   the gate reports a commit count at all -- clean-room: OK -- 190 file(s) scanned plus 30 commit message(s), no violations.
+  ok   reported count equals the bundle own history -- 30 == 30
+  with a marker commit : clean-room: OK -- 190 file(s) scanned plus 31 commit message(s), no violations.
+  ok   the marker moved the clone history by one -- 31
+  ok   the gate followed the clone, not this repository -- 31 == 31, and != 30
+  ok   the clone is left exactly as it will ship -- 30 == 30
+
+== checking the zip and the bundle ship the same files
+  ok   zip file list matches the clone tracked files -- 190 files
+  ok   zip excludes node_modules, dist and .git -- 0 found
+
+== running the full gate in the clone
+  ok   pnpm install -- exit=0, 23.3s
+  ok   pnpm typecheck -- exit=0, 29.7s
+  ok   pnpm lint -- exit=0, 10.9s
+  ok   pnpm test -- exit=0, 5.8s
+  ok   pnpm build -- exit=0, 5.7s
+  ok   pnpm check:links -- exit=0, 0.4s
+  ok   pnpm test:e2e -- exit=0, 23.8s
+  ok   pnpm lighthouse -- exit=0, 56.3s
+
+== OK
+  190 files, 30 commits, verified from the bundle.
+exit=0
 ```
