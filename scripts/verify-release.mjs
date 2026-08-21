@@ -162,7 +162,7 @@ function main() {
   const cloneTop = git(['rev-parse', '--show-toplevel'], CLONE);
   assert(
     'git inside the clone resolves to the clone, not the outer repository',
-    cloneTop.replace(/\\/g, '/').toLowerCase().endsWith('/.tmp/release-verify/clone'),
+    cloneTop.replace(/\\/g, '/').toLowerCase().includes('/.tmp/release-verify/clone-'),
     cloneTop,
   );
 
