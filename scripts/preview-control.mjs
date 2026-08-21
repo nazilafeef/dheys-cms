@@ -13,7 +13,7 @@
  * down. Stopping is deliberately routed through the CLI rather than a pid we guess at,
  * because the process that needs killing is not the one we spawned.
  */
-import { execFile, execFileSync } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -60,7 +60,9 @@ export function stopPreviewSync() {
 
 export async function stopPreview() {
   try {
-    await astro(['preview', 'stop']);
+    // `stdio: 'ignore'` here for the same reason as the start path: nothing inherited,
+    // nothing that can hold the promise open.
+    await astro(['preview', 'stop'], { stdio: 'ignore' });
   } catch {
     /* nothing was running */
   }
@@ -88,7 +90,29 @@ export async function startPreview({ port, host = '127.0.0.1', url, timeoutMs = 
   // extremely misleading. Always begin from nothing running.
   await stopPreview();
 
-  await astro(['preview', '--port', String(port), '--host', host]);
+  /*
+   * Fire and poll, rather than await the start command.
+   *
+   * `execFile` resolves when the child's stdio closes, not when it exits. The daemon Astro
+   * forks inherits those pipes and holds them open for its whole life, so awaiting the
+   * start command waits for the server to shut down --- which is the opposite of what this
+   * function is for. On Windows the fork detaches enough that it resolved anyway; on the CI
+   * runners it did not, and the Lighthouse gate hung for eighteen minutes on a step that
+   * takes fifty seconds before it was killed.
+   *
+   * Detached with stdio ignored, nothing is inherited and nothing can hang. Readiness is
+   * established below by asking the URL, which is the thing the caller actually needs.
+   */
+  const child = spawn(
+    process.execPath,
+    [ASTRO_BIN, 'preview', '--port', String(port), '--host', host],
+    {
+      cwd: ROOT,
+      detached: true,
+      stdio: 'ignore',
+    },
+  );
+  child.unref();
 
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
