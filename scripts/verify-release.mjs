@@ -32,7 +32,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,7 +42,17 @@ const RELEASE_DIR = join(ROOT, 'release');
 const ZIP = join(RELEASE_DIR, `dheys-cms-v${VERSION}.zip`);
 const BUNDLE = join(RELEASE_DIR, `dheys-cms-v${VERSION}.bundle`);
 const WORK = join(ROOT, '.tmp', 'release-verify');
-const CLONE = join(WORK, 'clone');
+// A fresh directory per run. Windows keeps handles open on a tree that was just built and
+// served -- a scanner, an editor watcher, a browser that has not finished exiting -- and a
+// verification script that cannot start because the *last* run's copy is still locked is a
+// broken gate. Old runs are pruned when they let go, and ignored when they do not.
+const CLONE = join(
+  WORK,
+  `clone-${new Date()
+    .toISOString()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 14)}`,
+);
 
 const args = new Set(process.argv.slice(2));
 /** Skip the slow gates. The history proof, which is the point of this script, still runs. */
@@ -136,8 +146,15 @@ function main() {
 
   // ── clone the bundle: a real repository, with its own history ────────────────────────
   step('cloning the bundle into a standalone repository');
-  rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
+  for (const stale of readdirSync(WORK)) {
+    try {
+      rmSync(join(WORK, stale), { recursive: true, force: true });
+    } catch {
+      // Still locked. Harmless: the directory is gitignored, skipped by every gate, and the
+      // run below uses its own.
+    }
+  }
   git(['clone', '--quiet', BUNDLE, CLONE], WORK);
 
   const cloneGitDir = join(CLONE, '.git');
@@ -150,47 +167,90 @@ function main() {
   );
 
   // ── the history proof ────────────────────────────────────────────────────────────────
+  //
+  // Two assertions, because the obvious one is not always decisive. Comparing the reported
+  // count against the clone's own proves nothing on a run where this repository happens to
+  // sit at the same number -- which it does immediately after packaging, before the report
+  // is committed. So the clone is also given a marker commit on a throwaway branch: the
+  // count it alone can see moves by exactly one, and a gate reading our history would not
+  // follow. The marker is removed afterwards and the count checked back down again, so the
+  // artefact is left exactly as it will ship.
   step('proving the clean-room gate reads the clone history, not this one');
+
+  /** Run the gate inside the clone and return its summary line and the count it reports. */
+  const gateInClone = () => {
+    const result = spawnSync('node', [join(CLONE, 'scripts', 'check-clean-room.mjs')], {
+      cwd: CLONE,
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const text = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim();
+    const line = text.split('\n').pop() ?? '';
+    const match = /plus (\d+) commit message\(s\)/.exec(text);
+    return { status: result.status, line, count: match ? Number(match[1]) : null };
+  };
+
   const cloneCommits = Number(git(['rev-list', '--count', '--all'], CLONE));
   const outerCommits = Number(git(['rev-list', '--count', '--all']));
   console.log(`  bundle/clone commits : ${cloneCommits}`);
   console.log(`  this repository      : ${outerCommits}`);
 
-  const gateOut = spawnSync('node', [join(CLONE, 'scripts', 'check-clean-room.mjs')], {
-    cwd: CLONE,
-    encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  const summary = `${gateOut.stdout ?? ''}${gateOut.stderr ?? ''}`.trim();
-  console.log(`  gate says            : ${summary.split('\n').pop()}`);
-  assert('clean-room passes in the clone', gateOut.status === 0, `exit=${gateOut.status}`);
+  const before = gateInClone();
+  console.log(`  gate says            : ${before.line}`);
+  assert('clean-room passes in the clone', before.status === 0, `exit=${before.status}`);
+  assert('the gate reports a commit count at all', before.count !== null, before.line);
+  assert(
+    'reported count equals the bundle own history',
+    before.count === cloneCommits,
+    `${before.count} == ${cloneCommits}`,
+  );
 
-  const reported = /plus (\d+) commit message\(s\)/.exec(summary);
-  assert('the gate reports a commit count at all', reported !== null, summary.split('\n').pop());
-  if (reported) {
-    const n = Number(reported[1]);
-    assert(
-      'reported count equals the clone own history',
-      n === cloneCommits,
-      `${n} == ${cloneCommits}`,
-    );
-    // Only meaningful once this repository has moved past the bundle, which is the normal
-    // state after packaging. Said out loud either way so a weak run is not mistaken for a
-    // strong one.
-    if (outerCommits !== cloneCommits) {
-      assert(
-        'reported count is NOT this repository history',
-        n !== outerCommits,
-        `${n} != ${outerCommits}`,
-      );
-    } else {
-      console.log(
-        '  note  this repository is at the same commit count as the bundle, so the two ' +
-          'cannot be told apart by number alone on this run; the toplevel assertion above ' +
-          'is what carries the proof here.',
-      );
-    }
-  }
+  // The marker. An empty commit on a detached branch: HEAD, the worktree and the tracked
+  // file set are all untouched, so nothing being verified changes -- only the history the
+  // gate can see from inside the clone.
+  const MARKER_BRANCH = 'release-verify-history-probe';
+  git(['branch', MARKER_BRANCH], CLONE);
+  git(
+    [
+      '-c',
+      'user.email=verify@example.com',
+      '-c',
+      'user.name=Release Verify',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--quiet',
+      '--allow-empty',
+      '--only',
+      '-m',
+      'chore: history probe, removed before this script exits',
+    ],
+    CLONE,
+  );
+  git(['branch', '-f', MARKER_BRANCH, 'HEAD'], CLONE);
+  git(['reset', '--quiet', '--hard', 'HEAD~1'], CLONE);
+
+  const probed = Number(git(['rev-list', '--count', '--all'], CLONE));
+  const during = gateInClone();
+  console.log(`  with a marker commit : ${during.line}`);
+  assert('the marker moved the clone history by one', probed === cloneCommits + 1, `${probed}`);
+  assert(
+    'the gate followed the clone, not this repository',
+    during.count === probed && during.count !== outerCommits,
+    `${during.count} == ${probed}, and != ${outerCommits}`,
+  );
+
+  // Put it back, and prove it went back.
+  git(['branch', '-D', MARKER_BRANCH], CLONE);
+  git(['reflog', 'expire', '--expire=now', '--all'], CLONE);
+  git(['gc', '--prune=now', '--quiet'], CLONE);
+  const after = gateInClone();
+  assert(
+    'the clone is left exactly as it will ship',
+    Number(git(['rev-list', '--count', '--all'], CLONE)) === cloneCommits &&
+      after.count === cloneCommits,
+    `${after.count} == ${cloneCommits}`,
+  );
 
   // ── the zip agrees with the bundle about what ships ──────────────────────────────────
   step('checking the zip and the bundle ship the same files');
