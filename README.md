@@ -142,7 +142,7 @@ stop resolving. See [docs/connecting-a-site.md](./docs/connecting-a-site.md).
 
 ## Quality gates
 
-Every one of these runs in CI on Node 20 and 22, and each must pass on a clean clone.
+Every one of these runs in CI on Node 22 and 24, and each must pass on a clean clone.
 
 ```bash
 pnpm install --frozen-lockfile   # no warnings, no peer conflicts

@@ -32,7 +32,7 @@ release.
 
 - **1 — Skeleton, config, base-path handling, CI, clean-room gate, deploy pipeline.**
   Astro 5 + Preact + MDX + TypeScript strict; `astro.config.ts` shares `normaliseBase` with
-  the runtime so build and markup cannot disagree; CI runs the gate on Node 20 and 22 with a
+  the runtime so build and markup cannot disagree; CI runs the gate on Node 22 and 24 with a
   separate root-hosting build job; nightly Windows/macOS matrix; the Pages deploy workflow
   reads its base path from `actions/configure-pages` rather than hard-coding it; clean-room
   gate written, tuned against a full-tree run, and proven by planted violations.

@@ -7,7 +7,7 @@ pnpm gate
 ```
 
 Typecheck, lint, unit tests, the clean-room gate, the build and the link check. It runs in
-CI on Node 20 and 22 anyway, so running it locally only saves you a round trip.
+CI on Node 22 and 24 anyway, so running it locally only saves you a round trip.
 
 For anything touching the front end or the admin:
 

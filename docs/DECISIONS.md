@@ -252,3 +252,30 @@ merely happened.
     _whether_, the kill switch decides _if at all_, and the connector moves files that already
     exist. Where a step in the automation would reach a provider, the mock transport stands in
     and the report says so at that point rather than in a footnote.
+
+## Ship — steps 2 to 7 against the live remote
+
+51. **The supported Node floor is 22.19, not 20.11, and CI runs 22 and 24.** The brief asks
+    for latest-stable Astro and a gate on Node 20 and 22. Those two stopped being compatible:
+    `astro@5.18.2` pulls `unifont@0.7.5`, which declares `undici: ^8.0.0`, and `undici@8.10.0`
+    sets `engines.node: >=22.19.0`. The Node 20 gate therefore failed at `pnpm install` with
+    `ERR_PNPM_UNSUPPORTED_ENGINE` before running a single check — the first push to the live
+    remote is what surfaced it, because every local run had been on 22.23. Overriding undici
+    down to 7 would contradict unifont's own declared range, and pinning Astro backwards
+    would forfeit the brief's "latest stable". Of the readings available, the one that serves
+    a first-time forker is the honest floor: on Node 20 `pnpm install` cannot succeed whatever
+    this repository claims, so claiming 20 buys nothing and costs a failed first command. The
+    brief's own conflict rule applies. `engines.node`, `.nvmrc` (now pinned to `22.19.0`
+    exactly, since a bare `22` can resolve below the floor) and every prose claim were moved
+    together; `docs/BUILD-BRIEF.md` is left alone, being a historical document.
+52. **Nothing was written to this repository's Actions secret store, by instruction and by
+    decision 49.** Ship step 3 otherwise ran in full: Pages source set to GitHub Actions,
+    `DHEYS_PUBLISHING_HALTED` set to `false` and `COST_LEDGER_PATH` to its documented default
+    as repository _variables_, and Dependabot alerts and security updates enabled. The secrets
+    page is empty and is meant to stay that way.
+53. **The first Pages deploy failed, and the cause was ordering rather than the workflow.**
+    Pushing `main` triggered `deploy.yml` about a minute before Pages had been enabled, so
+    `actions/configure-pages@v5` got a 404 from the Pages API and stopped the build. Enabling
+    Pages first and re-dispatching the same workflow, unchanged, ran green. Recorded because
+    the failed run stays visible in the Actions history and reads like a broken pipeline
+    otherwise: ship steps 3 and 4 are ordered for a reason.

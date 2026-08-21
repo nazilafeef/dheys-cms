@@ -170,7 +170,7 @@ review. Per-job and per-site cost ceilings, with unpriced models costed at the j
 double-publish — verified as a real second tick in section 2b. Missed windows are caught up
 rather than dropped. Timezone conversion is IANA-based.
 
-**Automation.** Five workflows — CI on Node 20 and 22 with a separate root-hosting build, a
+**Automation.** Five workflows — CI on Node 22 and 24 with a separate root-hosting build, a
 nightly Windows/macOS matrix, Pages deploy that reads its base path rather than hard-coding it,
 the scheduler tick, and agent dispatch. Runners resolve their API root from `GITHUB_API_URL`,
 so GitHub Enterprise Server works. The AI keys exist only inside Actions on a private instance;

@@ -80,6 +80,6 @@ First release.
 - 650 unit tests, 44 end-to-end tests, all four Lighthouse categories at 100.
 - A clean-room gate scanning every file and the whole commit history for leaked domains,
   foreign repository references and credentials.
-- CI on Node 20 and 22, both hosting modes, with a nightly Windows and macOS matrix.
+- CI on Node 22 and 24, both hosting modes, with a nightly Windows and macOS matrix.
 
 [1.0.0]: https://github.com/nazilafeef/dheys-cms/releases/tag/v1.0.0

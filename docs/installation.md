@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **Node 20.11+** — 22 recommended, and pinned in `.nvmrc`
+- **Node 22.19+** — pinned in `.nvmrc`, and the floor `engines.node` enforces
 - **pnpm 9+**
 - **Git**
 - For the ship sequence: the **GitHub CLI**, authenticated
