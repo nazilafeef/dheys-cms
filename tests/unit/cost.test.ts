@@ -350,6 +350,94 @@ describe('formatting', () => {
  * way: `${{ secrets.X }}` expands to the empty string when unset, not to nothing, so
  * `env['X'] ?? fallback` hands back `''` and the fallback never fires.
  */
+/**
+ * A model with no rate anywhere.
+ *
+ * `estimateCost` reports `rateKnown: false` and hands back the job ceiling. That number is
+ * what the *dispatcher* was willing to spend on one run, not what the model costs — this
+ * code invented it. Enforcing a monthly spend cap against invented numbers means the cap is
+ * not measuring spend, and a ledger accumulating them is fiction shaped like accounting.
+ *
+ * So the run is refused, by name, before the caps are consulted. See DECISIONS 72.
+ */
+describe('a model with no rate anywhere', () => {
+  const unpriced = estimateCost({
+    model: 'some-unpriced-model',
+    tokensIn: 1_000_000,
+    tokensOut: 0,
+    rates: {},
+    fallbackUsd: 2,
+  });
+
+  it('is reported as unpriced rather than quietly given a price', () => {
+    expect(unpriced.rateKnown).toBe(false);
+  });
+
+  it('is refused before any cap is consulted, and the model is named', () => {
+    const v = checkDispatch({
+      caps,
+      ledger: [],
+      siteId: 'example-news',
+      estimatedCostUsd: unpriced.costUsd,
+      rateKnown: unpriced.rateKnown,
+      model: unpriced.model,
+      now: NOW,
+    });
+    expect(v.allowed).toBe(false);
+    expect(v.scope).toBe('unpriced');
+    expect(v.reason).toContain('some-unpriced-model');
+    expect(v.reason).toContain('agents.modelRates');
+  });
+
+  it('says an override is what would let it through', () => {
+    const v = checkDispatch({
+      caps,
+      ledger: [],
+      siteId: 'example-news',
+      estimatedCostUsd: unpriced.costUsd,
+      rateKnown: unpriced.rateKnown,
+      model: unpriced.model,
+      now: NOW,
+    });
+    expect(v.requiresOverride).toBe(true);
+  });
+
+  it('a person can still override it, and the reason records that nothing was checked', () => {
+    const v = checkDispatch({
+      caps,
+      ledger: [],
+      siteId: 'example-news',
+      estimatedCostUsd: unpriced.costUsd,
+      rateKnown: unpriced.rateKnown,
+      model: unpriced.model,
+      now: NOW,
+      override: true,
+    });
+    expect(v.allowed).toBe(true);
+    expect(v.reason).toContain('nothing was checked against the monthly cap');
+  });
+
+  it('does not interfere with a model that has a rate', () => {
+    const priced = estimateCost({
+      model: 'claude-opus-5',
+      tokensIn: 1_000,
+      tokensOut: 0,
+      rates: {},
+    });
+    const v = checkDispatch({
+      caps,
+      ledger: [],
+      siteId: 'example-news',
+      estimatedCostUsd: priced.costUsd,
+      rateKnown: priced.rateKnown,
+      model: priced.model,
+      now: NOW,
+    });
+    expect(v.allowed).toBe(true);
+    expect(v.scope).toBe('none');
+  });
+});
+
 describe('reading an environment value that may be present but empty', () => {
   it('uses the fallback when the variable is unset', () => {
     expect(envOr({}, 'MODEL', 'a-default')).toBe('a-default');

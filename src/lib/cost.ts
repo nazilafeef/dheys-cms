@@ -149,10 +149,20 @@ export interface DispatchCheckInput {
   readonly ledger: readonly CostLedgerEntry[];
   readonly siteId: string;
   readonly estimatedCostUsd: number;
+  /**
+   * Whether `estimatedCostUsd` came from a real rate or from a guess.
+   *
+   * Optional so existing callers keep working, but pass it: an estimate the pricing table
+   * could not produce is not a number the cap can be enforced against, and `false` is the
+   * only value that makes this check do its job.
+   */
+  readonly rateKnown?: boolean;
   readonly now: Date;
   /** Explicit operator action. Never inferred, never defaulted to true. */
   readonly override?: boolean;
   readonly timeZone?: string;
+  /** Named in the refusal when the model has no rate. */
+  readonly model?: string;
 }
 
 export interface DispatchVerdict {
@@ -160,7 +170,7 @@ export interface DispatchVerdict {
   /** True when only an explicit override would let this through. */
   readonly requiresOverride: boolean;
   readonly reason: string;
-  readonly scope: 'site' | 'global' | 'none';
+  readonly scope: 'site' | 'global' | 'none' | 'unpriced';
   readonly spentUsd: number;
   readonly capUsd: number;
   readonly remainingUsd: number;
@@ -175,6 +185,48 @@ export interface DispatchVerdict {
 export function checkDispatch(input: DispatchCheckInput): DispatchVerdict {
   const timeZone = input.timeZone ?? 'UTC';
   const month = monthKey(input.now, timeZone);
+
+  /*
+   * An unpriced model is refused before the caps are even consulted.
+   *
+   * The old behaviour was to price it at the job ceiling and carry on, which reads as
+   * conservative and is not. The ceiling is what the *dispatcher* was willing to spend on
+   * one run, not what the model costs; it is a number this code invented. Enforcing a
+   * monthly spend cap against invented numbers means the cap is not measuring spend, and
+   * the ledger that accumulates those estimates is fiction that looks like accounting.
+   *
+   * That is the same failure as the `??` bug this check exists alongside, one level up: a
+   * value that is *present but meaningless* passed silently as if it were real. The fix is
+   * the same in shape — say so instead of guessing.
+   *
+   * Refusing costs the operator one two-line registry edit, once per model, and buys every
+   * estimate afterwards being a real number. The escape hatch is the override that already
+   * exists for the caps, so a person can still say "go anyway" and have that recorded.
+   */
+  if (input.rateKnown === false) {
+    const model = input.model ? `"${input.model}"` : 'the requested model';
+    const base = {
+      scope: 'unpriced' as const,
+      spentUsd: 0,
+      capUsd: 0,
+      remainingUsd: 0,
+      projectedUsd: input.estimatedCostUsd,
+    };
+    if (input.override === true) {
+      return {
+        ...base,
+        allowed: true,
+        requiresOverride: true,
+        reason: `No rate is configured for ${model}, so the cost of this run cannot be estimated. Dispatched anyway by explicit override; nothing was checked against the monthly cap.`,
+      };
+    }
+    return {
+      ...base,
+      allowed: false,
+      requiresOverride: true,
+      reason: `No rate is configured for ${model}, so this run cannot be priced and the monthly cap cannot be enforced against it. Add a rate under \`agents.modelRates\` for this site — \`{ "${input.model ?? 'model-id'}": { "inputPerMillion": 0, "outputPerMillion": 0 } }\` — or dispatch with an explicit override.`,
+    };
+  }
 
   const siteCap = input.caps.perSiteMonthlyUsd[input.siteId];
   if (siteCap !== undefined) {

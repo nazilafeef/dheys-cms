@@ -1,6 +1,6 @@
 {
   "name": "dheys-cms",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Multi-site content platform for human and AI-authored editorial workflows, running on static hosting with no server and no database.",
   "license": "MIT",
   "private": false,

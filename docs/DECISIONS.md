@@ -406,3 +406,49 @@ merely happened.
     Recorded because scoping the history scan to `HEAD` (decision 54) solved this for bot
     _branches_ and this is the same problem arriving after a merge. The lesson is the same
     one: a gate has to survive the tools the project actually uses, or it gets switched off.
+
+## v1.0.3 — what "no price" and "zero" are allowed to mean
+
+72. **A model with no rate anywhere is refused, not priced at the job ceiling.** The old
+    behaviour returned `fallbackUsd` — `max_cost`, the ceiling the _dispatcher_ set for one
+    run — and carried on, printing "model has no known rate" as it went. That reads as
+    conservative and is not. The ceiling is not what the model costs; it is a number this
+    code invented. A monthly spend cap enforced against invented numbers is not measuring
+    spend, and a ledger accumulating them is fiction shaped like accounting. DECISIONS 13
+    and 33 chose the ceiling deliberately, so this reverses an earlier decision rather than
+    fixing an oversight.
+
+    `checkDispatch` now refuses before the caps are consulted, names the model, and says
+    exactly what to add — `agents.modelRates` for that site. `estimateCost` stays pure and
+    still reports `rateKnown: false`; the policy lives in the gate, beside the caps it
+    protects. The escape hatch is the override that already exists, so a person can still
+    say "go anyway" and have the reason record that nothing was checked against the cap.
+
+    The cost of this is real and worth stating: the product ships rates for Anthropic models
+    only, so enabling OpenAI, Gemini or a self-hosted endpoint now requires pricing it
+    first. That is the right trade. Knowing what a provider costs before turning it on is
+    not a burden; it is the thing the cap was for.
+
+73. **A per-site cap of `0` means "may not spend", and a site with no cap says so by absence.**
+    Found while auditing for the shape in decision 69, and it is the same bug wearing
+    different clothes. `monthlyCapUsd` was `z.number().nonnegative().default(0)`, so after
+    parsing there was no way to distinguish "this site declares no cap of its own" from
+    "this site may spend nothing". `capsFrom` then tested `> 0` and dropped the site from the
+    cap table entirely — making a deliberate `0` mean _unlimited_, governed only by the
+    global cap.
+
+    Meanwhile the identical `0` on `globalMonthlyCapUsd` blocks everything, because
+    `checkDispatch` compares against it directly. One value, two contradictory meanings,
+    inside one configuration object, and the dangerous reading was the one attached to the
+    per-site field an operator is most likely to set to zero on purpose.
+
+    `monthlyCapUsd` is now `.optional()`: absent means the global cap governs, a present `0`
+    means this site may not spend, and `capsFrom` tests presence rather than truthiness. The
+    global default stays `0` meaning "nothing runs until a budget is set deliberately" —
+    that is the safe direction for a default and is unchanged. Three tests cover it,
+    including the dispatch actually being refused for a zero-capped site.
+
+    The general lesson, for the third time in three decisions: **a schema default that
+    coincides with a meaningful value destroys information.** `{}` for rates, `0` for a cap.
+    Where a field has a legitimate empty or zero value, it must be optional, so that
+    "unset" and "set to nothing" stay different facts.

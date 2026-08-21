@@ -104,6 +104,8 @@ async function main(): Promise<void> {
     ledger,
     siteId: site.id,
     estimatedCostUsd: estimate.costUsd,
+    rateKnown: estimate.rateKnown,
+    model: estimate.model,
     now,
     override: args['override'] === 'true',
     timeZone: site.publishing.defaultTimezone,

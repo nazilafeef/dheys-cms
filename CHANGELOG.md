@@ -3,6 +3,32 @@
 Notable changes to Dheys CMS. Format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [semantic versioning](https://semver.org).
 
+## [1.0.3] — 2026-08-21
+
+Cost control. Two values that meant one thing to the schema and another to the code.
+
+### Changed
+
+- **A model with no configured rate is now refused instead of priced at the job ceiling.**
+  The ceiling is the most a single run was allowed to cost — a number this code invents, not
+  a price. Enforcing a monthly spend cap against invented numbers means the cap is not
+  measuring spend. The run is refused by name, saying which model and what to add under
+  `agents.modelRates`; an explicit override still lets a person through, and records that
+  nothing was checked. **This reverses an earlier decision**: the product ships rates for
+  Anthropic models only, so enabling OpenAI, Gemini or a self-hosted endpoint now means
+  pricing it first.
+- **A per-site `monthlyCapUsd` of `0` now means "may not spend".** It is optional, and a site
+  with no cap of its own says so by leaving it out. Previously it defaulted to `0` and
+  `capsFrom` dropped any site whose cap was not greater than zero — so a deliberate zero
+  meant *unlimited*, while the identical `0` on `globalMonthlyCapUsd` blocked everything.
+
+### Added
+
+- `docs/NULLISH-AUDIT.md` — every `??` and falsy `||` in `src/` and `scripts/`, including the
+  cases found safe, so the sweep can be reviewed rather than trusted.
+- Nine tests: five for the unpriced-model refusal, three for cap presence, one for the
+  zero-cap dispatch actually being blocked.
+
 ## [1.0.2] — 2026-08-21
 
 Cost estimation. No feature or template change.

@@ -10,6 +10,7 @@ import {
   RegistryError,
   type RegistryFetcher,
 } from '@lib/site-registry';
+import { checkDispatch } from '@lib/cost';
 import { exampleRegistry } from '../../src/sites.example';
 
 /**
@@ -180,9 +181,44 @@ describe('reading the registry', () => {
   it('assembles cost caps in the shape the dispatch check expects', () => {
     const caps = capsFrom(registry);
     expect(caps.globalMonthlyUsd).toBe(40);
-    expect(caps.perSiteMonthlyUsd).toEqual({ 'example-news': 25, 'demo-journal': 10 });
-    // sample-shop has agents disabled and a zero cap, so it gets no per-site entry.
-    expect(caps.perSiteMonthlyUsd['sample-shop']).toBeUndefined();
+    expect(caps.perSiteMonthlyUsd).toEqual({
+      'example-news': 25,
+      'demo-journal': 10,
+      'sample-shop': 0,
+    });
+  });
+
+  it('carries a zero cap through as zero, rather than dropping it', () => {
+    /*
+     * `sample-shop` sets `monthlyCapUsd: 0` and has agents disabled: it may not spend.
+     * `capsFrom` used to test `> 0` and drop the site from the table entirely, which made a
+     * deliberate zero mean *unlimited* — the global cap became the only limit. The identical
+     * `0` on `globalMonthlyCapUsd` meant the opposite, blocking everything. One value, two
+     * contradictory meanings. See DECISIONS 73.
+     */
+    const caps = capsFrom(registry);
+    expect(caps.perSiteMonthlyUsd['sample-shop']).toBe(0);
+
+    const verdict = checkDispatch({
+      caps,
+      ledger: [],
+      siteId: 'sample-shop',
+      estimatedCostUsd: 0.01,
+      rateKnown: true,
+      now: new Date('2026-06-10T09:00:00.000Z'),
+    });
+    expect(verdict.allowed).toBe(false);
+    expect(verdict.scope).toBe('site');
+  });
+
+  it('omits a site that declares no cap of its own, so the global cap governs', () => {
+    const site = findSite(registry, 'example-news');
+    const withoutCap = {
+      ...site,
+      agents: { ...site.agents, monthlyCapUsd: undefined },
+    };
+    const caps = capsFrom({ ...registry, sites: [withoutCap] });
+    expect(caps.perSiteMonthlyUsd['example-news']).toBeUndefined();
   });
 
   it('falls back to the shipped guardrails when a site declares none', () => {

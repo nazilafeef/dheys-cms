@@ -101,7 +101,20 @@ export const siteAgentConfigSchema = z.object({
   defaultModel: z.string().min(1).optional(),
   /** Named job chains, e.g. `{ "news": ["research", "write", "fact-check"] }`. */
   chains: z.record(z.array(z.string().min(1))).default({}),
-  monthlyCapUsd: z.number().nonnegative().default(0),
+  /**
+   * Per-site monthly ceiling, in USD.
+   *
+   * **Optional on purpose, and not defaulted to 0.** With `.default(0)` there was no way to
+   * tell "this site has no cap of its own" from "this site may spend nothing" — the same
+   * collapse that let an empty `modelRates` masquerade as an absent one. `capsFrom` then
+   * read `> 0` and dropped the site from the cap table, so a deliberate `0` meant
+   * *unlimited* (up to the global cap) while the identical `0` on `globalMonthlyCapUsd`
+   * meant *nothing may run*. One value, two opposite meanings, in one config object.
+   *
+   * Absent now means "no site-specific cap; the global cap governs". A present `0` means
+   * this site may not spend.
+   */
+  monthlyCapUsd: z.number().nonnegative().optional(),
   /**
    * Per-model rate overrides. Required for any provider whose rates this CMS does not
    * ship -- an unpriced model is treated as costing its job ceiling, not as free.
@@ -148,7 +161,6 @@ export const siteDefinitionSchema = z.object({
     enabled: false,
     providers: [],
     chains: {},
-    monthlyCapUsd: 0,
     modelRates: {},
   }),
   deploy: deployAdapterConfigSchema,
@@ -165,6 +177,10 @@ export type SiteDefinition = z.infer<typeof siteDefinitionSchema>;
 export const registrySchema = z.object({
   version: z.literal(1),
   /** Applies across every site; a per-site cap can only be stricter in effect. */
+  /**
+   * Global monthly ceiling, in USD. Defaults to `0`, which means **nothing may run** until
+   * a budget is set deliberately — the safe direction for a default, and unchanged.
+   */
   globalMonthlyCapUsd: z.number().nonnegative().default(0),
   defaultTimezone: z.string().min(1).default('UTC'),
   sites: z.array(siteDefinitionSchema),
@@ -385,7 +401,9 @@ export function capsFrom(registry: Registry): {
 } {
   const perSiteMonthlyUsd: Record<string, number> = {};
   for (const site of registry.sites) {
-    if (site.agents.monthlyCapUsd > 0) perSiteMonthlyUsd[site.id] = site.agents.monthlyCapUsd;
+    // Presence, not truthiness. `> 0` silently turned a deliberate zero cap into no cap.
+    const cap = site.agents.monthlyCapUsd;
+    if (cap !== undefined) perSiteMonthlyUsd[site.id] = cap;
   }
   return { globalMonthlyUsd: registry.globalMonthlyCapUsd, perSiteMonthlyUsd };
 }
