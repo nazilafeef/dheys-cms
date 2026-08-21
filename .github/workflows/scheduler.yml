@@ -36,34 +36,54 @@ concurrency:
 jobs:
   tick:
     name: Publish what is due
-    # Skip cleanly when there is nothing to tick for.
-    #
-    # The site token is what lets a tick write to a connected repository, and without it
-    # there is no work a run could do. Two entirely normal situations have no token: the
-    # public copy of this repository, whose secret store is empty on purpose and stays that
-    # way, and a fresh fork that nobody has configured yet. Both were getting a failed run
-    # every fifteen minutes, which trains everyone to ignore a red scheduler -- exactly the
-    # signal that matters when a real tick breaks.
-    #
-    # A skipped job burns no runner minutes and leaves the run green. The runner still
-    # fails loudly if the token is present and something else is wrong.
-    if: ${{ secrets.DHEYS_SITE_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
+      # Decide whether there is anything to tick for, before spending a runner on it.
+      #
+      # The site token is what lets a tick write to a connected repository; without it no
+      # run can do any work. Two entirely normal situations have no token: the published
+      # copy of this repository, whose secret store is empty on purpose and stays that way,
+      # and a fresh fork nobody has configured yet. Both were failing every fifteen minutes,
+      # which teaches every reader to ignore a red scheduler -- exactly the signal that
+      # matters when a real tick breaks.
+      #
+      # This is a step and not a job-level `if:` because the `secrets` context is not
+      # available in one. Writing it there is accepted by every editor and linter and then
+      # rejected by GitHub at dispatch time, as a zero-second run named after the workflow
+      # file, which is a genuinely confusing way to find out.
+      - name: Is a site token configured?
+        id: config
+        env:
+          SITE_TOKEN: ${{ secrets.DHEYS_SITE_TOKEN }}
+        run: |
+          if [ -z "$SITE_TOKEN" ]; then
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'No DHEYS_SITE_TOKEN is set, so there is no connected site to publish to.'
+            echo 'Skipping. This is the expected state for the published repository and for'
+            echo 'a fork that has not been configured yet -- see docs/installation.md.'
+          else
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.config.outputs.configured == 'true'
 
       - uses: pnpm/action-setup@v4
+        if: steps.config.outputs.configured == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.config.outputs.configured == 'true'
         with:
           node-version: '22'
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        if: steps.config.outputs.configured == 'true'
 
       - name: Tick
+        if: steps.config.outputs.configured == 'true'
         env:
           # Writes to connected site repositories, so this is NOT the workflow token.
           GITHUB_TOKEN: ${{ secrets.DHEYS_SITE_TOKEN }}

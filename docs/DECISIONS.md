@@ -336,4 +336,8 @@ merely happened.
     that something is broken. A job-level guard skips the run, which costs no runner minutes
     and leaves the history green; a token that is present but wrong still fails loudly. The
     alternative, a repository whose scheduler is always red, teaches every reader to ignore
-    the one signal that matters when a real tick breaks.
+    the one signal that matters when a real tick breaks. The guard is a first _step_ rather
+    than a job-level `if:`, because the `secrets` context is not available in one — written
+    there it passes every editor and linter and is then rejected by GitHub at dispatch time
+    as a zero-second run named after the workflow file, which is a confusing way to find
+    out. Corrected after doing exactly that.
