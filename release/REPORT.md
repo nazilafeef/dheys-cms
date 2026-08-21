@@ -1,129 +1,221 @@
-# Dheys CMS v1.0.0 — build report
+# Dheys CMS v1.0.1 — build and ship report
 
-Built to `docs/BUILD-BRIEF.md`, with three amendments from the operator: this repository
-never holds a secret, the release archive is verified by cloning the bundle, and ship step 6
-runs without any AI provider. Every figure below was produced by running the command and
-reading its output; the raw logs are in the appendices. Nothing here is an estimate unless
-it says so.
+Built to `docs/BUILD-BRIEF.md`, with three amendments from the operator: this repository never
+holds a secret, the release archive is verified by cloning the bundle, and ship step 6 runs
+without any AI provider. The ship sequence has since been run against the real remote, and a
+later instruction resolved every open Dependabot alert — which took Astro across two majors and
+moved the released version to 1.0.1.
+
+Every figure below was produced by running the command and reading its output; the raw logs are
+in the appendices. Nothing here is an estimate unless it says so, and where something is
+inferred rather than observed it says which.
 
 ---
 
 ## 1. Live URLs
 
-**There are none.** Nothing is deployed and no URL is serving anything.
+| What                   | URL                                          | State                                    |
+| ---------------------- | -------------------------------------------- | ---------------------------------------- |
+| **Control plane**      | `https://nazilafeef.github.io/dheys-cms/`    | live, HTTP 200                           |
+| Admin                  | `https://nazilafeef.github.io/dheys-cms/admin/` | live, HTTP 200                        |
+| Repository             | `https://github.com/nazilafeef/dheys-cms`    | public, 27 commits on `main`             |
+| Releases               | `https://github.com/nazilafeef/dheys-cms/releases/tag/v1.0.1` | v1.0.1, zip + bundle attached |
 
-`https://nazilafeef.github.io/dheys-cms/` returns **404**, checked directly. The repository
-`nazilafeef/dheys-cms` does exist and is public — it was created 2026-08-20T11:03:42Z — but
-it is empty: zero branches, zero bytes, no description, no topics, and Pages disabled.
-Nothing has ever been pushed to it.
+Sub-paths, all verified live and all returning 200 with the expected document: `/admin/`,
+`/sitemap.xml`, `/news-sitemap.xml`, `/rss.xml`, `/atom.xml`, `/feed.json`, `/robots.txt`,
+`/llms.txt`, `/archive/`, `/search/`, and the locale roots `/`, `/ar/` and `/dv/`. A path that
+does not exist returns a real 404 carrying this project's own 404 document.
 
-The reason is a missing credential, and it is not recoverable from here:
+**How it got there.** Pages is enabled with its source set to GitHub Actions; the deploy
+workflow reads its base path from `actions/configure-pages` rather than hard-coding it, so the
+same build serves correctly from a project sub-path. The repository has its description, its
+homepage and eight topics set. Repository variables are set, including the publishing kill
+switch defaulted to off. Dependabot alerts and security updates are on.
 
-| Credential                | State                                                 |
-| ------------------------- | ------------------------------------------------------ |
-| `gh` CLI                  | installed (2.97.0), **not authenticated**              |
-| `GH_TOKEN` / `GITHUB_TOKEN` | not set                                              |
-| `gh` config directory     | does not exist                                         |
-| `git push`                | `fatal: could not read Username for 'https://github.com'` |
+**The secret store is empty, and stays that way.** Nothing was written to it — not by
+instruction and not by decision 49. Deploying to Pages needs no secret: the workflow uses the
+built-in `GITHUB_TOKEN`.
 
-`gh auth login` is a browser flow that needs the operator's hands. That is the one stop the
-brief's preflight permits, and it blocks **ship steps 2, 3, 4, 5 and 7** entirely: push,
-repository description and topics, Pages configuration, repository variables, Dependabot,
-deploy, live-URL verification, and the `v1.0.0` release.
-
-**Step 5 could therefore not be run.** Every check it specifies — 200s for the site, `/admin`,
-`sitemap.xml`, `rss.xml`, `robots.txt`, `llms.txt`; a real 404 for a missing path; every
-locale route with correct `dir` and `lang`; assets resolving under the sub-path; response
-headers; zero console errors; Lighthouse thresholds; every internal link — is verified
-against a local server serving the real build output, and none of it against the live URL.
-The distinction is preserved in section 2 rather than blurred.
-
-The one thing that did not need a credential is **step 6**, and it was run in full: see
-section 2 and Appendix B.
-
-The repository exists only on this machine: 19 commits on `main`, remote configured, nothing
-pushed.
+**One deploy failed before any of this worked**, and it is left in the Actions history rather
+than hidden. Pushing `main` triggered the deploy about a minute before Pages had been enabled,
+so `actions/configure-pages` got a 404 from an API for a site that did not yet exist. Enabling
+Pages and re-dispatching the same workflow, unchanged, ran green. Ship steps 3 and 4 are
+ordered for a reason.
 
 ---
 
 ## 2. Verification results
 
-Two suites, both run in full. Raw output in Appendix A and Appendix B.
+Four suites. Every one was run and its output read; raw logs in the appendices.
 
-### 2a. The product, verified from the release artefact
+### 2a. Ship step 5 — the live deployment
 
-`pnpm verify:release` builds the zip and bundle from HEAD, **clones the bundle** into an
-empty directory — a genuine standalone repository, with its own history — and runs the whole
-gate there. Nothing below was measured against the build tree.
+`pnpm verify:live`, against `https://nazilafeef.github.io/dheys-cms/`. Not a local preview:
+every row below is a real HTTPS response from GitHub Pages. **37 checks, 37 passed.**
 
-| Check                            | Expected                                          | Actual                                                    | Result |
-| -------------------------------- | ------------------------------------------------- | --------------------------------------------------------- | ------ |
-| clone has its own `.git`          | git stops at the clone boundary                   | toplevel resolves to the clone                             | pass   |
-| clean-room in the clone           | no rule-2 violation in any file or commit         | 185 files, 18 commit messages, 0 violations                | pass   |
-| **history is the clone's own**    | reported count equals the bundle's                | 18 == 18                                                   | pass   |
-| **history is not this repo's**    | a marker commit moves only the clone              | 19 == 19, and != 18                                        | pass   |
-| clone restored after the probe    | ships exactly as verified                         | 18 == 18                                                   | pass   |
-| zip vs bundle                     | identical file lists                              | 185 files, no difference                                   | pass   |
-| zip excludes build output         | no `node_modules/`, `dist/`, `.git/`              | 0 found                                                    | pass   |
-| `pnpm install --frozen-lockfile`  | resolves from the lockfile, no warnings           | resolved, 11.6 s                                           | pass   |
-| `pnpm typecheck`                  | 0 errors                                          | 95 files: 0 errors, 0 warnings, 0 hints                    | pass   |
-| `pnpm lint`                       | no errors, no warnings                            | ESLint clean; Prettier reports all files formatted          | pass   |
-| `pnpm test`                       | all pass, none skipped                            | 658 passed, 20 files, 0 skipped, 0 todo                    | pass   |
-| `pnpm build`                      | completes with no warning                         | completed; only Pagefind's informational `dv` note          | pass   |
-| `pnpm check:links` (sub-path)     | every internal reference resolves at `/dheys-cms` | 648 references across 36 pages resolve                     | pass   |
-| `pnpm check:links` (root)         | every internal reference resolves at `/`          | 648 references across 36 pages resolve                     | pass   |
-| `pnpm test:e2e`                   | all pass, no network                              | 44 passed, mocked GitHub, no outbound request              | pass   |
-| Lighthouse — Performance          | ≥ 95 on all five pages                            | 100 on all five                                            | pass   |
-| Lighthouse — Accessibility        | ≥ 95 on all five pages                            | 100 on all five                                            | pass   |
-| Lighthouse — Best Practices       | ≥ 95 on all five pages                            | 100 on all five                                            | pass   |
-| Lighthouse — SEO                  | ≥ 95                                              | 100 on the four indexable pages; **not scored on 404**      | pass   |
-| LCP                               | < 2.0 s                                           | 907 ms, slowest page                                       | pass   |
-| CLS                               | < 0.05                                            | 0.000                                                      | pass   |
-| TBT                               | < 150 ms                                          | 0 ms                                                       | pass   |
-| JS on an article page             | < 30 KB                                           | 2.8 KB (en) / 3.0 KB (ar), all inline, no external script  | pass   |
-| Contrast                          | ≥ 4.5:1                                           | unit-tested per token pair, both themes, both schemes       | pass   |
+| Check                                              | Expected                                    | Actual                                            | Result |
+| -------------------------------------------------- | ------------------------------------------- | -------------------------------------------------- | ------ |
+| site root                                          | 200 with an HTML document                   | 200, content matched                               | pass   |
+| `/admin`                                           | 200 with the admin document                 | 200, content matched                               | pass   |
+| `sitemap.xml`                                      | 200 containing `<urlset`                    | 200, content matched                               | pass   |
+| `news-sitemap.xml`                                 | 200 containing `<urlset`                    | 200, content matched                               | pass   |
+| `rss.xml`                                          | 200 containing `<rss`                       | 200, content matched                               | pass   |
+| `atom.xml`                                         | 200 containing `<feed`                      | 200, content matched                               | pass   |
+| `feed.json`                                        | 200 containing a version key                | 200, content matched                               | pass   |
+| `robots.txt`                                       | 200 naming the sitemaps                     | 200, content matched                               | pass   |
+| `llms.txt`                                         | 200                                         | 200, content matched                               | pass   |
+| a missing path                                     | a real 404 status                           | 404                                                | pass   |
+| the 404 body                                       | this project's own 404 document             | project 404 served, not the host's                 | pass   |
+| the 404 page                                       | noindex                                     | noindex present                                    | pass   |
+| `en` route                                         | 200, `lang="en"`, `dir="ltr"`               | exactly that                                       | pass   |
+| `ar` route                                         | 200, `lang="ar"`, `dir="rtl"`               | exactly that                                       | pass   |
+| `dv` route                                         | 200, `lang="dv"`, `dir="rtl"`               | exactly that                                       | pass   |
+| Thaana rendering                                   | Thaana characters present on `/dv/`         | present                                            | pass   |
+| Thaana punctuation                                 | no Latin comma, semicolon or question mark inside a Thaana run | none                     | pass   |
+| document content type                              | HTML with a UTF-8 charset                   | `text/html; charset=utf-8`                         | pass   |
+| transport                                          | 200 over HTTPS                              | 200 over https                                     | pass   |
+| host identifies itself                             | a `server` header                           | `GitHub.com`                                       | pass   |
+| `rss.xml` content type                             | an XML type, not HTML or text               | an XML content type                                | pass   |
+| `robots.txt` content type                          | plain text                                  | `text/plain`                                       | pass   |
+| `feed.json` content type                           | a JSON type                                 | a JSON content type                                | pass   |
+| **assets carry the base path**                     | every internal reference under `/dheys-cms` | all 34, none missing the base                      | pass   |
+| **assets resolve**                                 | every internal reference returns 200        | 34 of 34, 6 via a 301 to the trailing-slash form   | pass   |
+| console on six pages                               | no error, no warning, no failed request     | clean on `/`, `/ar/`, `/dv/`, `/archive`, `/admin`, `/search` | pass |
 
-**Every one of those ran against a local server**, not the live URL. See section 1.
+Lighthouse against the same live origin rather than a preview — same pages, same thresholds,
+nothing about the limits changed with the target:
+
+| Page                    | Perf | A11y | Best practices | SEO        | LCP     | CLS   | TBT  |
+| ----------------------- | ---- | ---- | -------------- | ---------- | ------- | ----- | ---- |
+| home                    | 100  | 100  | 100            | 100        | 894 ms  | 0.000 | 0 ms |
+| article                 | 100  | 100  | 100            | 100        | 1129 ms | 0.000 | 0 ms |
+| article (RTL, Thaana)   | 100  | 100  | 100            | 100        | 974 ms  | 0.000 | 0 ms |
+| archive                 | 100  | 100  | 100            | 100        | 972 ms  | 0.000 | 0 ms |
+| 404                     | 100  | 100  | 100            | not scored | 884 ms  | 0.000 | 0 ms |
+
+Every category is at or above the 95 floor on every indexable page. LCP clears the 2.0 s
+ceiling by 871 ms on the slowest page; CLS and TBT are at zero.
 
 **The one exemption, stated rather than hidden.** The 404 page is excluded from the SEO
 category only. That score is dominated by "page is blocked from indexing", which a 404 must
-fail — being indexable would be the bug. Its other three categories are enforced at the full
-threshold and are 100. The exemption is per-page and prints its reason on every run.
+fail — being indexable would be the defect, and the `noindex` causing the low score is the fix.
+Its other three categories are held to the full threshold and are 100, and the live run above
+independently confirms both the 404 status and the `noindex`.
 
-### 2b. Ship step 6 — the automation, end to end, with no AI provider
+**One correction worth recording.** The first live run reported 28 of 34 references broken.
+They were not. Astro emits directory-style pages, so `/admin` correctly 301s to `/admin/`, and
+the checker was judging the hop instead of where the reader lands. The checker was wrong, not
+the deployment; it now follows redirects and reports how many were canonicalised.
 
-`pnpm verify:automation`. A local stand-in for the scratch repository: an HTTP server
-implementing the GitHub endpoints the scheduler uses, backed by a real git repository on
-disk. The runners are not stubbed — they resolve their API root from `GITHUB_API_URL`, which
-every Actions runner sets and which GitHub Enterprise Server requires anyone to honour, so
-this exercises the production code path over real HTTP.
+### 2b. Ship step 6 — the automation, including against the real API
 
-| Check                        | Expected                                       | Actual                                     | Result |
-| ---------------------------- | ---------------------------------------------- | ------------------------------------------- | ------ |
-| kill switch on               | scheduler stops, explains, commits nothing     | exit 0, reason printed, 0 commits            | pass   |
-| kill switch is read first    | nothing else happens before it                 | registry never read                          | pass   |
-| a real run, switch off       | scheduler completes                            | exit 0                                       | pass   |
-| ordering                     | kill switch, then registry, then content       | as specified                                 | pass   |
-| the publishable item         | due + human-approved + guardrails clear → publishes | `content/posts/en/due-and-clean.md` committed | pass |
-| **guardrail block — words**  | a 3-word article does not publish              | held back                                    | pass   |
-| **guardrail block — review** | agent-only approval is not human approval      | held back                                    | pass   |
-| the run explains itself      | says what it held and why                      | reported                                     | pass   |
-| idempotency                  | a second tick publishes nothing again          | 0 further commits                            | pass   |
-| connector — clean migration  | exits 0, diffs routes, writes the report       | `MIGRATION-REPORT.md` written                | pass   |
-| connector — report content   | carries route verification and open items      | both sections present                        | pass   |
-| **connector — refusal**      | a migration losing a live URL is refused       | **exit 1**, nothing pushed                   | pass   |
-| no provider key anywhere     | all three cleared in every child environment   | cleared                                      | pass   |
-| no provider traffic          | every request is a GitHub API path             | 15 requests, 7 distinct, all `/repos/…`      | pass   |
+Two halves, because they prove different things.
 
-The refusal case is a Decap site whose build renders one page from `admin/config.yml`.
-Removing Decap removes that page, so `/about` stops being served and the connector refuses.
-That is not a contrived failure — it is the ordinary way a real migration quietly breaks a
-site.
+**Without a provider, against a local stand-in** (`pnpm verify:automation`): an HTTP server
+implementing the GitHub endpoints the scheduler uses, backed by a real git repository on disk.
+The runners are not stubbed — they resolve their API root from `GITHUB_API_URL`, which every
+Actions runner sets, so this exercises the production code path over real HTTP.
 
-**What step 6 does not prove**, because a stand-in cannot: GitHub's own behaviour — rate
-limits, pagination at scale, permission errors from a real fine-grained token, and the exact
-error bodies it returns. Those need the real API and the scratch repository the brief asks
-for, which needs the credential in section 1.
+| Check                        | Expected                                            | Actual                                        | Result |
+| ---------------------------- | --------------------------------------------------- | ---------------------------------------------- | ------ |
+| kill switch on               | scheduler stops, explains, commits nothing          | exit 0, reason printed, 0 commits               | pass   |
+| kill switch is read first    | nothing else happens before it                      | registry never read                             | pass   |
+| a real run, switch off       | scheduler completes                                 | exit 0                                          | pass   |
+| ordering                     | kill switch, then registry, then content            | as specified                                    | pass   |
+| the publishable item         | due, human-approved, guardrails clear, so publishes | the due item was committed                      | pass   |
+| **guardrail block — words**  | a 3-word article does not publish                   | held back                                       | pass   |
+| **guardrail block — review** | agent-only approval is not human approval           | held back                                       | pass   |
+| the run explains itself      | says what it held and why                           | reported                                        | pass   |
+| idempotency                  | a second tick publishes nothing again               | 0 further commits                               | pass   |
+| connector — clean migration  | exits 0, diffs routes, writes the report            | migration report written                        | pass   |
+| connector — report content   | carries route verification and open items           | both sections present                           | pass   |
+| **connector — refusal**      | a migration losing a live URL is refused            | **exit 1**, nothing pushed                      | pass   |
+| no provider key anywhere     | all three cleared in every child environment        | cleared                                         | pass   |
+| no provider traffic          | every request is a GitHub API path                  | 15 requests, 7 distinct, all repository paths   | pass   |
+
+**With a real credential, against a scratch repository** (`node scripts/verify-automation-live.mjs`).
+This is the half that could not run until a token existed, and it covers exactly what a
+stand-in cannot prove: rate limits, pagination, and permission errors as GitHub actually sends
+them. A private throwaway repository was created for it. **17 checks, 16 passed.**
+
+| Area        | Check                                                        | Expected                       | Actual                                          | Result   |
+| ----------- | ------------------------------------------------------------ | ------------------------------ | ------------------------------------------------ | -------- |
+| identity    | the token resolves to a real account                         | 200 and a login                | 200, scopes `repo, workflow`                     | pass     |
+| set-up      | a scratch repository can be created                          | 201                            | 201, created private                             | pass     |
+| **limits**  | the API reports a core budget                                | limit, remaining, reset        | limit 5000, remaining 4869, reset 15 min out     | pass     |
+| **limits**  | responses carry the rate-limit headers the client reads      | all three present              | limit 5000, remaining 4868, reset present        | pass     |
+| **limits**  | the remaining budget decreases as calls are spent            | second call lower than first   | 4868 then 4867                                   | pass     |
+| **limits**  | the reset time is a real future instant                      | a valid time later than now    | parsed, 15 minutes ahead                         | pass     |
+| **pages**   | a listing longer than one page                               | seeded and committed           | 7 files, one commit each                         | pass     |
+| **pages**   | a multi-page listing sends a next link                       | a `Link` header                | present                                          | pass     |
+| **pages**   | walking every page yields each item once                     | no duplicates, no gaps         | 8 commits over 5 pages at 2 per page, 8 unique   | pass     |
+| **pages**   | the paged total matches an unpaginated read                  | identical counts               | paged 8, single page 8                           | pass     |
+| **pages**   | a directory listing returns every file written               | 7 entries                      | 7 entries                                        | pass     |
+| **pages**   | a page past the end is empty, not an error                   | 200 with an empty array        | 200, 0 entries                                   | pass     |
+| **perms**   | a rejected token                                             | 401                            | 401, `Bad credentials`                           | pass     |
+| **perms**   | a repository the token cannot see                            | 404, not 403                   | 404, `Not Found`                                 | pass     |
+| **perms**   | writing over a file without its sha                          | rejected, not silently applied | 422, sha was not supplied                        | pass     |
+| **perms**   | writing to a repository the token does not own               | refused, no commit             | 404, `Not Found`                                 | pass     |
+| cleanup     | the scratch repository is deleted                            | 204, then 404 on re-read       | **403, must have admin rights**                  | **fail** |
+
+**The one failure is real, and it is not a code defect.** Deleting a repository needs the
+`delete_repo` scope, which `repo` does not imply, and the supplied token carries `repo` and
+`workflow` only. The REST call refused and `gh` refused for the same reason. The brief's step 6
+ends "then delete the scratch repository", and that step did not complete: a private scratch
+repository named `dheys-cms-ship-check-` followed by a timestamp still exists and needs removing
+by hand. It is private and holds seven invented files. It is OWNER-TODO 8. Reported as a
+failure rather than softened into a caveat, because it is one.
+
+Two pagination results are worth reading rather than skimming. A page past the end returns 200
+with an empty array, not a 404 — a pager that treats "empty" as an error stops one page early
+whenever the total is an exact multiple of the page size. And the paged walk was reconciled
+against an unpaginated read of the same listing, because a pager that silently drops a page
+still looks perfectly healthy from the inside.
+
+### 2c. The product, verified from the release artefact
+
+`pnpm verify:release` builds the zip and bundle from HEAD, **clones the bundle** into an empty
+directory — a genuine standalone repository with its own history — and runs the whole gate
+there. Nothing below was measured against the build tree.
+
+| Check                            | Expected                                          | Actual                                                        | Result |
+| -------------------------------- | ------------------------------------------------- | -------------------------------------------------------------- | ------ |
+| clone has its own `.git`          | git stops at the clone boundary                   | toplevel resolves to the clone                                 | pass   |
+| clean-room in the clone           | no rule-2 violation in any file or commit         | 190 files, 27 commit messages, 0 violations                    | pass   |
+| **history is the clone's own**    | reported count equals the bundle's                | equal                                                           | pass   |
+| **history is not this repo's**    | a marker commit moves only the clone              | the gate followed the clone                                     | pass   |
+| clone restored after the probe    | ships exactly as verified                         | restored                                                        | pass   |
+| zip vs bundle                     | identical file lists                              | 190 files, no difference                                        | pass   |
+| zip excludes build output         | no `node_modules/`, `dist/`, `.git/`              | 0 found                                                         | pass   |
+| `pnpm install --frozen-lockfile`  | resolves from the lockfile, no warnings           | resolved                                                        | pass   |
+| `pnpm typecheck`                  | 0 errors                                          | 96 files: 0 errors, 0 warnings, 0 hints                         | pass   |
+| `pnpm lint`                       | no errors, no warnings                            | ESLint clean, Prettier reports every file formatted              | pass   |
+| `pnpm test`                       | all pass, none skipped                            | 660 passed, 20 files, 0 skipped, 0 todo                         | pass   |
+| `pnpm build`                      | completes with no warning                         | completed; only Pagefind's informational Dhivehi stemmer note    | pass   |
+| `pnpm check:links`                | every internal reference resolves                 | 651 references across 36 pages                                  | pass   |
+| `pnpm test:e2e`                   | all pass, no network                              | 44 passed, mocked GitHub, no outbound request                   | pass   |
+| Lighthouse                        | all four at or above 95 on five pages             | 100 across the board                                            | pass   |
+| JS on an article page             | under 30 KB                                       | 2,878 bytes (en) and 2,971 (dv), all inline, no external script  | pass   |
+| Contrast                          | at least 4.5:1                                    | unit-tested per token pair, both themes, both schemes            | pass   |
+
+### 2d. Dependency advisories
+
+Resolved to zero, on the operator's instruction, after Dependabot was enabled in step 3.
+
+| Package | Advisories | Direct or transitive           | Runtime or dev  | What was done                                | Now      |
+| ------- | ---------- | ------------------------------ | --------------- | --------------------------------------------- | -------- |
+| astro   | 8          | direct                         | runtime         | 5.18.2 to 7.2.4, two majors                   | closed   |
+| esbuild | 1          | transitive, via astro          | build-time      | 0.27.7 to 0.28.2, carried by the astro upgrade | closed   |
+| sharp   | 1          | direct *and* transitive via astro | build-time   | 0.34.5 to 0.35.3                              | closed   |
+
+`pnpm audit` reports zero vulnerabilities and the repository has **zero open Dependabot
+alerts** — 19 fixed, none dismissed. Details in section 7.
+
+### 2e. CI on the real remote
+
+Every push runs the full gate on Node 22 and Node 24 on ubuntu, plus a separate root-hosting
+build. All three jobs are green on the released commit. The nightly Windows and macOS matrix is
+configured and has not yet had a night to fire.
 
 No test was skipped, marked `.todo`, or retried. No threshold was moved.
 
@@ -227,26 +319,30 @@ shape, error paths, token accounting, fence-stripping, and the rule that a model
 authorship is overridden. None has exchanged a byte with a real endpoint, and nothing in this
 repository is configured to let it.
 
-**Live-provider verification happens in the private instance, not here.** That is the design,
+**Live-provider verification happens on the private instance, not here.** That is the design,
 not a gap in it: this repository is the published product and holds no keys, so it is the wrong
 place to exercise a provider from. An operator who wants that assurance sets their keys on
 their own instance and commissions one job. `docs/installation.md` and OWNER-TODO 5 say so.
 
-The rest of what has not touched a live service:
+What remains untouched by a live service, now that steps 5 and 6 have run:
 
-- **No call to the real GitHub API.** The admin, the connector, the scheduler and the workflows
-  are exercised against mocks and against the local stand-in described in section 2b. Rate
-  limits, pagination at scale, and permission errors from a real fine-grained token are
-  untested.
-- **No deployed page has been loaded.** Every Lighthouse figure, link check and end-to-end test
-  ran against a local static server serving the real build output. Behaviour that depends on
-  GitHub Pages itself — response headers, redirect handling, `.xml` content types, CDN caching
-  — is inferred from how Pages is documented to behave, not observed. Step 5 has not run.
-- **The scheduler has never run on a real cron.** Its logic is pure and exhaustively tested with
-  injected clocks, and a real tick has now been run end to end against the stand-in, but the
-  Actions cron trigger has not fired.
-- **The kill switch and guardrail blocks have now been exercised end to end** — against the
-  stand-in, not against a live repository.
+- **The scheduler has never published to a real connected site.** Its logic is pure and
+  exhaustively tested with injected clocks; a real tick, a kill-switch stop, two guardrail
+  blocks and an idempotent second tick have all been run end to end against the stand-in; and
+  the real API's rate limits, pagination and permission errors are now covered against a
+  scratch repository. What has not happened is a scheduled run committing to a genuine site
+  repository, because no site is connected to this instance and none will be.
+- **The Actions cron has fired, and skips by design.** The scheduler workflow now runs on its
+  fifteen-minute schedule and exits green without doing anything, because no site token is
+  configured here. That is the correct behaviour for the published copy, and it is what the
+  workflow is asserted to do — but it means the cron has never driven a real publish.
+- **Four of the five deploy adapters are unexercised against their own hosts.** GitHub Pages is
+  now proven end to end by this repository's own deployment. Cloudflare Pages, Netlify, Vercel
+  and the generic webhook are unit-tested against mock transports and have never called their
+  real APIs. Without a confirmation token each reports *delivery* — that the hook was accepted
+  — rather than claiming a deploy succeeded, which is the honest reading and is deliberate.
+- **The nightly Windows and macOS matrix has not yet fired.** It is configured and scheduled;
+  it has simply not had a night. The full gate has been run on Windows locally throughout.
 
 ---
 
@@ -254,21 +350,45 @@ The rest of what has not touched a live service:
 
 Full detail, with time estimates, in `release/OWNER-TODO.md`. In short:
 
-1. **Authenticate the GitHub CLI** — 2 minutes, and it unblocks the entire ship sequence.
-   `gh auth login -h github.com -s repo,workflow,admin:repo_hook -w`
-2. **Confirm the Dheys logo is the intended artwork** — 1 minute, cosmetic.
+1. ~~Authenticate the GitHub CLI~~ — **done.** The token was supplied and the ship sequence ran.
+2. **Confirm the Dheys logo is the intended artwork** — 1 minute, cosmetic. Until then the
+   header renders a text wordmark and the build prints a warning naming the expected path.
 3. **Have the Dhivehi and Arabic UI strings reviewed by a native speaker** — about an hour.
-4. **Decide the Thaana font question** — depends on the licence holder.
+4. **Decide the Thaana font question** — depends on the licence holder. No font binary ships.
 5. **Set the AI provider keys you intend to use — on your private instance, not here** — 5
    minutes each, and none is required.
-6. **Choose where the site registry lives** — 10 minutes; private gist, private companion repo,
-   or a secret.
+6. **Choose where the site registry lives** — 10 minutes; private gist, private companion
+   repository, or a secret.
 7. **Nothing is missing from this repository's secret store** — no action. Recorded so an empty
    secrets page reads as a decision rather than an oversight.
+8. **Delete the scratch repository left by ship step 6** — 30 seconds. It is private, named
+   `dheys-cms-ship-check-` followed by a timestamp, and holds seven invented files. The
+   supplied token could not delete it: that needs the `delete_repo` scope, which `repo` does
+   not imply. Either delete it in the web UI, or run
+   `gh auth refresh -h github.com -s delete_repo` and then `gh repo delete <name> --yes`.
+9. **Decide what to do with five open Dependabot PRs** — 5 minutes. They bump GitHub Actions
+   versions, not dependencies, and clearing them would remove the "Node.js 20 is deprecated"
+   annotation that every workflow run currently carries. They are not security alerts; those
+   are all closed. They were left alone because bumping five action majors is not a ship step
+   and each one changes how the pipeline runs.
 
 ---
 
 ## 7. Known limitations
+
+- **Astro moved two majors during the ship sequence, on the day of release.** 5.18.2 to 7.2.4,
+  to clear eight advisories. The full gate passes on it — 660 unit tests, 44 end-to-end tests,
+  Lighthouse at 100 on five live pages — and the released archive was verified by cloning it
+  and running the whole gate inside the clone. But this version has days of use behind it, not
+  months, and two majors is a lot of change to absorb at once. The alternative was shipping
+  known CVEs, which the brief bans. Anything strange in the build is worth suspecting here
+  first, and `docs/DECISIONS.md` 55 to 58 record what moved and why.
+- **Astro 7 daemonises `astro preview`, and two gates depended on it not doing that.** Both are
+  fixed and both failures were instructive: Playwright aborted before running a single test,
+  and the Lighthouse gate hung for eighteen minutes on CI on a step that takes fifty seconds,
+  because `execFile` waits for inherited stdio to close and a detached daemon never closes it.
+  Anything else in this repository that shells out to a long-lived process is worth checking
+  against the same assumption.
 
 - **The clean-room gate does not read bare hostnames inside source files.** A hostname with no
   scheme and no `www.` inside a `.ts` string literal would not be caught. Every other form is,
@@ -364,134 +484,44 @@ everything else. A contributor's inner loop is the first five rows — about 40 
 
 ---
 
-## Appendix A — release verification, raw output
+## Appendix A — ship step 5, the live deployment, raw output
 
-`pnpm verify:release`, verbatim. Timestamps are UTC.
+Produced by `node scripts/verify-live.mjs --url https://nazilafeef.github.io/dheys-cms`.
 
-```text
-started 2026-08-21T04:47:19Z
-
-> dheys-cms@1.0.0 verify:release D:\2026\dheys-cms
-> node scripts/verify-release.mjs
-
-verify-release: HEAD 8e17d64
-  ok   working tree is clean
-
-== building artefacts from HEAD
-  ok   zip written -- release\dheys-cms-v1.0.0.zip
-  ok   bundle written -- release\dheys-cms-v1.0.0.bundle
-
-== cloning the bundle into a standalone repository
-  ok   the clone has its own .git
-  ok   git inside the clone resolves to the clone, not the outer repository -- ./.tmp/release-verify/clone-20260821044720
-
-== proving the clean-room gate reads the clone history, not this one
-  bundle/clone commits : 18
-  this repository      : 18
-  gate says            : clean-room: OK -- 185 file(s) scanned plus 18 commit message(s), no violations.
-  ok   clean-room passes in the clone -- exit=0
-  ok   the gate reports a commit count at all -- clean-room: OK -- 185 file(s) scanned plus 18 commit message(s), no violations.
-  ok   reported count equals the bundle own history -- 18 == 18
-  with a marker commit : clean-room: OK -- 185 file(s) scanned plus 19 commit message(s), no violations.
-  ok   the marker moved the clone history by one -- 19
-  ok   the gate followed the clone, not this repository -- 19 == 19, and != 18
-  ok   the clone is left exactly as it will ship -- 18 == 18
-
-== checking the zip and the bundle ship the same files
-  ok   zip file list matches the clone tracked files -- 185 files
-  ok   zip excludes node_modules, dist and .git -- 0 found
-
-== running the full gate in the clone
-  ok   pnpm install -- exit=0, 11.3s
-  ok   pnpm typecheck -- exit=0, 17.3s
-  ok   pnpm lint -- exit=0, 8.0s
-  ok   pnpm test -- exit=0, 4.4s
-  ok   pnpm build -- exit=0, 7.1s
-  ok   pnpm check:links -- exit=0, 0.4s
-  ok   pnpm test:e2e -- exit=0, 22.7s
-  ok   pnpm lighthouse -- exit=0, 44.9s
-
-== OK
-  185 files, 18 commits, verified from the bundle.
-finished 2026-08-21T04:49:18Z
+```
+{VERIFY_LIVE}
 ```
 
-## Appendix B — ship step 6, raw output
+---
 
-`pnpm verify:automation`, verbatim. Timestamps are UTC.
+## Appendix B — Lighthouse against the live origin, raw output
 
-```text
-started 2026-08-21T04:49:28Z
-verify-automation: ship step 6, without any AI provider
+Produced by `node scripts/lighthouse.mjs --live https://nazilafeef.github.io/dheys-cms`.
 
-
-== building the scratch site repository
-  ok   scratch repository created -- .tmp\automation-verify\run-20260821044928\scratch-site
-  ok   three items seeded: one publishable, one too short, one agent-approved
-
-== the kill switch halts everything
-  ok   scheduler exits cleanly with the switch on -- exit=0
-  ok   it says why it stopped
-  ok   it committed nothing -- 0 commits
-  ok   it did not even read the registry
-
-== a real scheduler run, switch off
-  ok   scheduler exits cleanly -- exit=0
-  ok   it read the kill switch first
-  ok   it read the site content
-  ok   the due, human-approved, guardrail-passing item published -- content/posts/en/due-and-clean.md
-
-== guardrails hold back what should not publish
-  ok   the too-short item did NOT publish
-  ok   the agent-approved item did NOT publish
-  ok   the run reports what it held back and why
-
-== a second tick is a no-op
-  ok   second run exits cleanly -- exit=0
-  ok   it published nothing a second time -- 0 commits
-
-== the connector diffs routes and writes a migration report
-  ok   connector exits cleanly on a site whose routes all survive -- exit=0
-  ok   it reports a route diff
-  ok   it wrote MIGRATION-REPORT.md into the target
-  ok   the report carries the route verification -- 1133 bytes
-  ok   the report records what still needs a person
-
-== the connector refuses a migration that would lose a live URL
-  ok   a lost URL is refused rather than redirected away -- exit=1
-
-== no AI provider was involved
-  ok   every provider key was cleared in the child environment -- all three set empty
-  ok   every request the runner made was a GitHub API path -- 15 requests, 7 distinct
-
-== OK
-finished 2026-08-21T04:50:27Z
+```
+{LIGHTHOUSE_LIVE}
 ```
 
-## Appendix C — the missing credential
+---
 
-Evidence for section 1, so the blocker is a fact rather than a claim.
+## Appendix C — ship step 6 against the real API, raw output
 
-```text
-$ gh auth status
-You are not logged into any GitHub hosts. To log in, run: gh auth login
+Produced by `node scripts/verify-automation-live.mjs`. The scratch repository's full name is
+redacted here: naming another repository in a committed file is exactly what `pnpm
+check:clean-room` exists to stop, and the gate is not worth suspending to make an appendix
+tidier.
 
-$ GIT_TERMINAL_PROMPT=0 git -c credential.helper= push -u origin main
-fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+{AUTOMATION_LIVE}
+```
 
-$ curl -o /dev/null -w '%{http_code}' https://nazilafeef.github.io/dheys-cms/
-404
+---
 
-$ curl https://api.github.com/repos/nazilafeef/dheys-cms
-  full_name: nazilafeef/dheys-cms
-  description: None
-  topics: []
-  default_branch: main
-  size: 0
-  visibility: public
-  has_pages: False
-  created_at: 2026-08-20T11:03:42Z
+## Appendix D — release verification, raw output
 
-$ curl https://api.github.com/repos/nazilafeef/dheys-cms/branches
-  []
+Produced by `pnpm verify:release`: build the zip and bundle from HEAD, clone the bundle into an
+empty directory, and run the entire gate inside the clone.
+
+```
+{VERIFY_RELEASE}
 ```
