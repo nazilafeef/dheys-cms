@@ -19,7 +19,11 @@
  */
 import { GitHubClient, GitHubError } from '../src/lib/github';
 import { loadRegistry, guardrailsFor, type SiteDefinition } from '../src/lib/site-registry';
-import { registrySourceFromEnv, githubRegistryFetcher } from '../src/lib/runner-env';
+import {
+  registrySourceFromEnv,
+  githubRegistryFetcher,
+  apiBaseUrlFromEnv,
+} from '../src/lib/runner-env';
 import { parseDocument, serialiseDocument } from '../src/lib/frontmatter';
 import { postSchema, type Post } from '../src/lib/schemas';
 import { transition } from '../src/lib/editorial';
@@ -44,7 +48,11 @@ interface SiteOutcome {
 
 async function main(): Promise<void> {
   const token = requireEnv('GITHUB_TOKEN');
-  const client = new GitHubClient({ token, userAgent: 'dheys-cms-scheduler' });
+  const client = new GitHubClient({
+    token,
+    userAgent: 'dheys-cms-scheduler',
+    baseUrl: apiBaseUrlFromEnv(process.env),
+  });
 
   const controlRepo = requireEnv('GITHUB_REPOSITORY');
   const [controlOwner = '', controlName = ''] = controlRepo.split('/');

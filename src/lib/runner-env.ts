@@ -88,3 +88,22 @@ export function githubRegistryFetcher(client: GitHubClient): RegistryFetcher {
     }
   };
 }
+
+/**
+ * The GitHub API root a runner should talk to.
+ *
+ * Every Actions runner sets `GITHUB_API_URL`, and on GitHub Enterprise Server it is not
+ * `api.github.com`. Hard-coding the public host is a bug on GHES, so the value is read
+ * rather than assumed, with the public host as the fallback for a local run that has no
+ * Actions environment around it.
+ *
+ * It has a second use. Because the runners resolve their API root from the environment
+ * rather than baking it in, the automation can be pointed at a local stand-in and exercised
+ * end to end -- scheduler, guardrails, kill switch -- without a network and without a real
+ * repository. That is not a testing hook bolted on; it is the same configuration GHES needs.
+ */
+export function apiBaseUrlFromEnv(env: Readonly<Record<string, string | undefined>>): string {
+  const raw = env['GITHUB_API_URL']?.trim();
+  if (!raw) return 'https://api.github.com';
+  return raw.replace(/\/+$/, '');
+}

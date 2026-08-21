@@ -20,7 +20,11 @@
  */
 import { GitHubClient } from '../src/lib/github';
 import { loadRegistry, findSite, capsFrom } from '../src/lib/site-registry';
-import { registrySourceFromEnv, githubRegistryFetcher } from '../src/lib/runner-env';
+import {
+  registrySourceFromEnv,
+  githubRegistryFetcher,
+  apiBaseUrlFromEnv,
+} from '../src/lib/runner-env';
 import { serialiseDocument } from '../src/lib/frontmatter';
 import { intake, agentJobRequestSchema, type AgentJobRequest } from '../src/lib/job-contract';
 import { resolveProvider } from '../src/lib/providers';
@@ -50,7 +54,11 @@ const ASSUMED_TOKENS_OUT = 6_000;
 
 async function main(): Promise<void> {
   const token = requireEnv('GITHUB_TOKEN');
-  const client = new GitHubClient({ token, userAgent: 'dheys-cms-agent-runner' });
+  const client = new GitHubClient({
+    token,
+    userAgent: 'dheys-cms-agent-runner',
+    baseUrl: apiBaseUrlFromEnv(process.env),
+  });
 
   const registry = await loadRegistry(
     registrySourceFromEnv(process.env),
