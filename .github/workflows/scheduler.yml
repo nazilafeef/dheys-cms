@@ -36,6 +36,18 @@ concurrency:
 jobs:
   tick:
     name: Publish what is due
+    # Skip cleanly when there is nothing to tick for.
+    #
+    # The site token is what lets a tick write to a connected repository, and without it
+    # there is no work a run could do. Two entirely normal situations have no token: the
+    # public copy of this repository, whose secret store is empty on purpose and stays that
+    # way, and a fresh fork that nobody has configured yet. Both were getting a failed run
+    # every fifteen minutes, which trains everyone to ignore a red scheduler -- exactly the
+    # signal that matters when a real tick breaks.
+    #
+    # A skipped job burns no runner minutes and leaves the run green. The runner still
+    # fails loudly if the token is present and something else is wrong.
+    if: ${{ secrets.DHEYS_SITE_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

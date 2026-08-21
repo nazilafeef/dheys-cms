@@ -326,3 +326,14 @@ merely happened.
     nobody had downloaded it, because it had never existed there. The version moves to 1.0.1,
     the archives are rebuilt from the fixed tree, and `CHANGELOG.md` records both — 1.0.0 as
     the build that was completed, 1.0.1 as the security upgrade that shipped.
+
+59. **The scheduler skips instead of failing when no site token is configured.** The cron
+    fired fifteen minutes after the first push and failed, and would have failed every
+    fifteen minutes thereafter, because `DHEYS_SITE_TOKEN` is deliberately absent from this
+    repository (decision 49) and the runner correctly refuses to start without it. Two
+    normal situations have no token — the published copy, permanently, and any fork nobody
+    has configured yet — and in both the honest answer is that there is no work to do, not
+    that something is broken. A job-level guard skips the run, which costs no runner minutes
+    and leaves the history green; a token that is present but wrong still fails loudly. The
+    alternative, a repository whose scheduler is always red, teaches every reader to ignore
+    the one signal that matters when a real tick breaks.
