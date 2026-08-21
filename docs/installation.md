@@ -39,6 +39,60 @@ pnpm test:e2e
 pnpm lighthouse
 ```
 
+## Run your own private instance
+
+Before you deploy anything real, understand the split, because it decides where your keys
+end up.
+
+**The published repository holds nothing.** No AI keys, no `DHEYS_SITE_TOKEN`, no site
+registry, no Actions secrets at all. Its secret store is deliberately empty. If you are
+looking at the public copy and wondering where the configuration went, that is the answer:
+there isn't any, by design.
+
+**Your instance holds everything.** Fork the repository — keeping the fork private — or
+clone it and push to a private repository of your own:
+
+```bash
+git clone https://github.com/nazilafeef/dheys-cms.git my-dheys
+cd my-dheys
+git remote set-url origin <your own private repository>
+git push -u origin main
+```
+
+Then configure that repository, and only that one:
+
+| What                                                                   | Where                                         | Notes                                                                       |
+| ---------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`                | Actions **secret**                            | All opt-in. None is required; the CMS runs with zero providers.             |
+| `DHEYS_SITE_TOKEN`                                                     | Actions **secret**                            | Lets the runner commit to your site repositories.                           |
+| Site registry                                                          | Private gist, private repo, or Actions secret | Never a file in the repository. See [site-registry.md](./site-registry.md). |
+| `DHEYS_PUBLISHING_HALTED`                                              | Actions **variable**                          | The kill switch. Set it to `false` to start.                                |
+| `SITE_REGISTRY_GIST` / `SITE_REGISTRY_REPO` / `SITE_REGISTRY_FILENAME` | Actions **variable**                          | Where to find the registry.                                                 |
+
+[configuration.md](./configuration.md) is the full table, including which of secret and
+variable each item belongs in.
+
+### Why the split exists
+
+A secret set on a public repository is one careless `run:` line away from being printed into
+a log that anybody can read, and a registry naming your sites, their repositories and their
+deploy hooks is a map of your infrastructure. Neither belongs in a copy that strangers can
+fetch. The cost of avoiding both is one fork.
+
+Updates flow one way. Pull from the public repository whenever you want them; nothing you
+add to your instance travels back.
+
+### The guard on the public side
+
+`pnpm check:clean-room` fails the build if a credential-shaped string, a foreign domain, or a
+reference to any repository other than this one appears anywhere in the tree **or in any
+commit message in the history**. It runs in CI on every push. That is what makes "the public
+copy holds nothing" a property you can check rather than a promise you have to trust — and it
+is also why you should not try to keep your registry here even temporarily. The build will
+stop, which is the intended outcome.
+
+---
+
 ## Deploying
 
 The control plane deploys to GitHub Pages from `.github/workflows/deploy.yml` on every push

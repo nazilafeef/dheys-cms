@@ -53,6 +53,50 @@ reading its base path from `actions/configure-pages` rather than assuming one.
 
 ---
 
+## The public copy and your private instance
+
+This repository is the **published product**. It holds no keys, no site registry, and no
+Actions secrets, and it never will. That is deliberate, not an oversight: a public
+repository is the wrong place for either, and a CMS that invites you to put them there has
+already made your first mistake for you.
+
+To actually run Dheys against your own sites, run **your own private instance**:
+
+```bash
+# fork on GitHub and keep the fork private, or:
+git clone https://github.com/nazilafeef/dheys-cms.git my-dheys
+cd my-dheys
+git remote set-url origin <your own private repository>
+git push -u origin main
+```
+
+Then, in **that** repository and nowhere else:
+
+- **AI provider keys** as Actions secrets — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+  `GEMINI_API_KEY`, or none at all. Every provider is opt-in and the CMS runs fine without
+  any of them.
+- **`DHEYS_SITE_TOKEN`** as an Actions secret, so the runner can commit to your site
+  repositories.
+- **Your site registry** — a private gist, a private companion repository, or a repository
+  secret. Never a file in the repository itself.
+- **Repository variables** for the things that are merely configuration: the
+  `DHEYS_PUBLISHING_HALTED` kill switch, a gist id, a model name.
+
+`docs/configuration.md` lists every variable and which of the two it belongs in.
+
+**Why not just use this repository?** Because secrets set on a public repository are one
+misconfigured workflow away from being printed into a log that anyone can read, and because
+a registry naming your sites, their repositories and their deploy hooks is a map of your
+infrastructure. The split costs one fork and removes both problems. Pull updates from here
+whenever you want them; nothing flows back.
+
+The gate enforces this from the other direction too: `pnpm check:clean-room` fails the build
+if a credential-shaped string, a foreign domain, or a reference to any repository other than
+this one appears anywhere in the tree **or in the commit history**. You cannot leak a key
+into this copy by accident, because the build stops.
+
+---
+
 ## What it does
 
 **Multi-site.** One dashboard and one review queue across every connected site. Per-site

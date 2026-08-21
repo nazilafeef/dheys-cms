@@ -36,6 +36,7 @@
     "test:watch": "vitest",
     "test:e2e": "pnpm build:e2e && playwright test",
     "check:clean-room": "node scripts/check-clean-room.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
     "check:links": "node scripts/check-links.mjs",
     "lighthouse": "node scripts/lighthouse.mjs",
     "connect": "tsx scripts/connect-site.mjs",

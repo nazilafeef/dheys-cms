@@ -204,14 +204,27 @@ merely happened.
 
 ## Slice 18 — packaging and the report
 
-46. **The release archive is verified inside the working directory, in a gitignored path.**
-    The brief forbids creating working copies anywhere else on disk, so the zip is unpacked
-    to `.tmp/` rather than to a system temp directory. The consequence has to be stated: git
-    resolves upward, so any git-aware check run in there sees the enclosing repository. The
-    file scan is unaffected — `git ls-files` returns nothing in an ignored subdirectory, so
-    the clean-room gate falls through to its filesystem walk and covers exactly the archive's
-    own files — but the commit-history scan reads this repository's history, because an
-    unpacked archive has none. That is recorded in the report rather than papered over.
+46. **The release archive is verified by cloning the bundle, not by unzipping the zip.**
+    _(Superseded the original entry; see the note below for what it used to say.)_ The brief
+    forbids creating working copies anywhere else on disk, so verification has to happen
+    inside this working directory. A zip carries no `.git`, so an unpacked copy sitting in
+    `.tmp/` had no history boundary of its own and every git-aware check resolved upward:
+    the clean-room gate read _this_ repository's commit history while reporting on the
+    archive. The file scan was sound — `git ls-files` returns nothing in an ignored
+    subdirectory, so the gate fell through to its filesystem walk and covered exactly the
+    archive's files — but the history half was reading something else.
+
+    **Resolved.** A bundle _is_ history, so `pnpm verify:release` clones
+    `release/dheys-cms-v1.0.0.bundle` into `.tmp/release-verify/clone`, which is a genuine
+    standalone repository: git stops at its boundary and borrows nothing from the enclosing
+    tree. The proof is an assertion rather than an argument — the commit count the gate
+    reports must equal the clone's own, and once this repository has moved past the bundle
+    (the normal state, since packaging is followed by committing the report) reading the
+    wrong history becomes detectable by number. `tests/unit/release-verify.test.ts` pins it
+    deterministically against a synthetic three-commit repository, a count this repository
+    can never have again. The zip is still checked, by asserting its file list matches the
+    clone's tracked files exactly, so the two artefacts cannot disagree about what ships.
+
 47. **The clean-room gate distinguishes "history clean" from "no history".** It returned an
     empty violation list for both and printed "plus commit history" either way, so run against
     an unpacked archive it would have certified a history it never opened. It now reports the
@@ -224,3 +237,18 @@ merely happened.
     unpacked archive was linted as project source and reported 205 errors in files that are
     not this project's to lint. A directory that is invisible to one tool and not another is
     a trap for whoever hits it next.
+
+## Amendments — public/private split, bundle verification, provider-free step 6
+
+49. **This repository's Actions secret store stays empty, permanently.** The operator runs a
+    separate private instance that holds every key and the site registry; this copy is the
+    published product. No `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` or `OPENAI_API_KEY` was read
+    from the environment during the build, requested, or written anywhere. The split is
+    documented in `README.md` and `docs/installation.md` from the reader's side, and recorded
+    as OWNER-TODO 7 so an empty secrets page reads as a decision rather than an unfinished
+    step. Deploying to Pages needs no secret: the workflow uses the built-in `GITHUB_TOKEN`.
+50. **The scheduler, guardrails, kill switch and connector are verified without a provider.**
+    None of the four calls a model: the scheduler decides _when_, the guardrails decide
+    _whether_, the kill switch decides _if at all_, and the connector moves files that already
+    exist. Where a step in the automation would reach a provider, the mock transport stands in
+    and the report says so at that point rather than in a footnote.
