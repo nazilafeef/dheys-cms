@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0 # the clean-room gate scans the full commit history
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v4
         with:
@@ -86,7 +86,7 @@ jobs:
       BASE_PATH: /
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
