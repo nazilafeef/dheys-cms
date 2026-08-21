@@ -195,8 +195,8 @@ function main() {
     return { status: result.status, line, count: match ? Number(match[1]) : null };
   };
 
-  const cloneCommits = Number(git(['rev-list', '--count', '--all'], CLONE));
-  const outerCommits = Number(git(['rev-list', '--count', '--all']));
+  const cloneCommits = Number(git(['rev-list', '--count', 'HEAD'], CLONE));
+  const outerCommits = Number(git(['rev-list', '--count', 'HEAD']));
   console.log(`  bundle/clone commits : ${cloneCommits}`);
   console.log(`  this repository      : ${outerCommits}`);
 
@@ -210,11 +210,17 @@ function main() {
     `${before.count} == ${cloneCommits}`,
   );
 
-  // The marker. An empty commit on a detached branch: HEAD, the worktree and the tracked
-  // file set are all untouched, so nothing being verified changes -- only the history the
-  // gate can see from inside the clone.
-  const MARKER_BRANCH = 'release-verify-history-probe';
-  git(['branch', MARKER_BRANCH], CLONE);
+  /*
+   * The marker: an empty commit on HEAD, left in place only while the gate runs.
+   *
+   * It used to be parked on a side branch with HEAD reset back off it, which worked when
+   * the gate read `git log --all`. The gate now reads the history reachable from HEAD --
+   * deliberately, so that a Dependabot branch cannot change its verdict (decision 54) --
+   * and a marker the gate is scoped not to look at proves nothing. It goes on HEAD, and
+   * comes off again immediately afterwards.
+   *
+   * The worktree and the tracked file set are untouched either way: the commit is empty.
+   */
   git(
     [
       '-c',
@@ -232,10 +238,8 @@ function main() {
     ],
     CLONE,
   );
-  git(['branch', '-f', MARKER_BRANCH, 'HEAD'], CLONE);
-  git(['reset', '--quiet', '--hard', 'HEAD~1'], CLONE);
 
-  const probed = Number(git(['rev-list', '--count', '--all'], CLONE));
+  const probed = Number(git(['rev-list', '--count', 'HEAD'], CLONE));
   const during = gateInClone();
   console.log(`  with a marker commit : ${during.line}`);
   assert('the marker moved the clone history by one', probed === cloneCommits + 1, `${probed}`);
@@ -246,13 +250,13 @@ function main() {
   );
 
   // Put it back, and prove it went back.
-  git(['branch', '-D', MARKER_BRANCH], CLONE);
+  git(['reset', '--quiet', '--hard', 'HEAD~1'], CLONE);
   git(['reflog', 'expire', '--expire=now', '--all'], CLONE);
   git(['gc', '--prune=now', '--quiet'], CLONE);
   const after = gateInClone();
   assert(
     'the clone is left exactly as it will ship',
-    Number(git(['rev-list', '--count', '--all'], CLONE)) === cloneCommits &&
+    Number(git(['rev-list', '--count', 'HEAD'], CLONE)) === cloneCommits &&
       after.count === cloneCommits,
     `${after.count} == ${cloneCommits}`,
   );
