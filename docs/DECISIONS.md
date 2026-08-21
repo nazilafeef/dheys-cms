@@ -292,12 +292,37 @@ merely happened.
     is ignored, and the same message on `HEAD` still fails — the negative case being the one
     that matters, since scoping to HEAD would also "pass" if the scan had silently stopped
     reading anything.
-55. **Astro's own advisories are recorded, not fixed, and this is the one CVE the brief's rule
-    did not get applied to.** Dependabot reports Astro CVEs fixed in 6.3.3, 6.4.6, 7.0.4,
-    7.0.6 and 7.0.10 against the shipped 5.18.2. `sharp` was fixed here and cost one line;
-    Astro is two major versions and a migration, which is a slice of work rather than a ship
-    step, and doing it inside the ship sequence would invalidate a release that had already
-    been built and gated. It is written up in the report under Known limitations with each
-    advisory's applicability to a static, server-less build assessed rather than waved at, and
-    as OWNER-TODO 8. Recorded here because "upgrade or replace" is a pre-resolved decision in
-    the brief and this is a departure from it, not an oversight.
+55. **Astro went from 5.18.2 to 7.2.4, two majors, to clear eight advisories.** ~~Recorded,
+    not fixed~~ — superseded on the operator's instruction to resolve every Dependabot alert
+    and to treat a required major as work to be done rather than a reason to skip. The
+    binding constraint was GHSA-4g3v-8h47-v7g6, patched in 7.1.0; the other seven were
+    satisfied by anything at or above 6.4.6. Every advisory is an XSS or SSRF in a
+    server-rendered path this static build never executes, so the real exposure was low —
+    but "not exploitable here" is an argument for calm, not for shipping a known CVE, which
+    the brief bans outright. `esbuild` (GHSA-g7r4-m6w7-qqqr) came along transitively: Astro 7
+    pulls 0.28.2, above the 0.28.1 fix, so no override was needed. `pnpm audit` reports zero
+    vulnerabilities afterwards.
+
+56. **The `sharp` override was removed once it stopped doing anything.** It existed because
+    `astro@5.18.2` declared `sharp: ^0.34.0` and would have kept a second, vulnerable copy
+    beside the patched one. Astro 7 declares `^0.34.0 || ^0.35.0`, so a single 0.35.3
+    resolves for everyone without being pinned. A version pin that no longer changes the
+    resolution is a maintenance cost with no benefit, and the next person to read it would
+    reasonably assume it was load-bearing.
+57. **Astro 7 daemonises `astro preview`, which broke two gates in different ways.** The
+    command now forks and exits 0 immediately. Playwright's `webServer` saw its process
+    leave and aborted the whole suite with "exited early" before running a test; the
+    Lighthouse gate called `.kill()` on an already-exited process and left a real server
+    listening afterwards, which would have served a stale build to whatever ran next. Both
+    now go through `scripts/preview-control.mjs`, which starts the daemon, waits for the URL
+    to actually answer rather than trusting the CLI's output, and stops it through Astro's
+    own `preview stop` — the pid that needs killing is not the one we spawned. A
+    `globalTeardown` stops it as well, because on Windows Playwright terminates its web
+    server without giving it the chance to run an exit handler.
+58. **v1.0.0 was never published, so the first published release is v1.0.1.** The release
+    archives had been built and gated against the pre-upgrade tree, which is the tree
+    carrying the eight advisories. Publishing that as v1.0.0 and superseding it minutes
+    later would have put a knowingly-vulnerable artefact on the releases page for no reason:
+    nobody had downloaded it, because it had never existed there. The version moves to 1.0.1,
+    the archives are rebuilt from the fixed tree, and `CHANGELOG.md` records both — 1.0.0 as
+    the build that was completed, 1.0.1 as the security upgrade that shipped.

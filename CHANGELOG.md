@@ -3,6 +3,36 @@
 Notable changes to Dheys CMS. Format follows [Keep a Changelog](https://keepachangelog.com);
 versions follow [semantic versioning](https://semver.org).
 
+## [1.0.1] — 2026-08-21
+
+Security and toolchain. No feature, template or content change; the public surface is
+identical to 1.0.0.
+
+### Security
+
+- **Astro 5.18.2 to 7.2.4**, clearing eight advisories: GHSA-8hv8-536x-4wqp and
+  GHSA-2pvr-wf23-7pc7 (high), GHSA-j687-52p2-xcff, GHSA-jrpj-wcv7-9fh9, GHSA-f48w-9m4c-m7f5
+  and GHSA-4g3v-8h47-v7g6 (moderate), GHSA-xr5h-phrj-8vxv and GHSA-7pw4-f3q4-r2p2 (low).
+  Every one is an XSS or SSRF in a server-rendered path that a static build never executes,
+  so exposure here was low — but a known CVE is not something this project ships.
+- **esbuild 0.27.7 to 0.28.2** (GHSA-g7r4-m6w7-qqqr), transitively, via the Astro upgrade.
+- **sharp 0.34.5 to 0.35.3** (GHSA-f88m-g3jw-g9cj), clearing four inherited libvips CVEs.
+- `pnpm audit` reports zero vulnerabilities, and the repository has no open Dependabot alert.
+
+### Changed
+
+- **Node floor is now 22.19**, and CI runs Node 22 and 24. A transitive `undici@8` requires
+  it, so `pnpm install` could not succeed on Node 20 whatever this repository claimed.
+- `@astrojs/mdx` 4 to 7, `@astrojs/preact` 4 to 6, `@astrojs/rss` to 4.0.19.
+
+### Fixed
+
+- The Lighthouse gate and the Playwright suite both drive Astro 7's preview server, which is
+  now a background daemon rather than a foreground process. Previously the e2e suite aborted
+  before running a test, and the Lighthouse gate left a server listening after it finished.
+- The clean-room gate reads the history reachable from `HEAD` rather than every ref, so its
+  verdict no longer depends on which Dependabot branches happen to exist when it runs.
+
 ## [1.0.0] — 2026-08-21
 
 First release.

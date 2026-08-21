@@ -15,16 +15,17 @@
  *   pnpm lighthouse --live <origin>  measure a deployed origin instead of a local preview
  *
  * `--live` exists for ship step 5, which requires the thresholds to be met on the real
- * deployment rather than on localhost. It skips the `dist/` check and the preview spawn
+ * deployment rather than on localhost. It skips the `dist/` check and the local preview
  * and points the same pages, the same warm-up and the same non-negotiable thresholds at
  * the given origin. Nothing about the limits changes with the target.
  */
-import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import lighthouse from 'lighthouse';
 import * as chromeLauncher from 'chrome-launcher';
+
+import { startPreview, stopPreview } from './preview-control.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.LIGHTHOUSE_PORT ?? 4325);
@@ -134,20 +135,6 @@ function findChrome() {
   return undefined;
 }
 
-async function waitForServer(url, timeoutMs = 60_000) {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      /* not up yet */
-    }
-    if (Date.now() > deadline) throw new Error(`Preview did not start at ${url}`);
-    await new Promise((resolve) => setTimeout(resolve, 400));
-  }
-}
-
 async function main() {
   if (!liveOrigin && !existsSync(join(ROOT, 'dist'))) {
     console.error('lighthouse: no dist/. Run `pnpm build` first.');
@@ -163,20 +150,18 @@ async function main() {
     process.exit(1);
   }
 
-  const preview = liveOrigin
-    ? undefined
-    : spawn('pnpm', ['exec', 'astro', 'preview', '--port', String(PORT), '--host', '127.0.0.1'], {
-        cwd: ROOT,
-        shell: true,
-        stdio: 'ignore',
-      });
+  /*
+   * Astro 7 daemonises `astro preview`, so the old spawn-and-`.kill()` pair killed a
+   * process that had already exited and left the real server listening afterwards.
+   * `startPreview` waits until the URL actually serves; `stopPreview` goes through Astro's
+   * own `preview stop`, which knows the pid it wrote down.
+   */
+  if (!liveOrigin) await startPreview({ port: PORT, host: '127.0.0.1', url: `${TARGET}/` });
 
   let chrome;
   const failures = [];
 
   try {
-    await waitForServer(`${TARGET}/`);
-
     chrome = await chromeLauncher.launch({
       chromePath,
       chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'],
@@ -258,7 +243,7 @@ async function main() {
     }
   } finally {
     if (chrome) await chrome.kill();
-    preview?.kill();
+    if (!liveOrigin) await stopPreview();
   }
 
   if (failures.length > 0) {

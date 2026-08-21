@@ -1,6 +1,6 @@
 {
   "name": "dheys-cms",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Multi-site content platform for human and AI-authored editorial workflows, running on static hosting with no server and no database.",
   "license": "MIT",
   "private": false,
@@ -52,17 +52,14 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "sharp"
-    ],
-    "overrides": {
-      "sharp": "^0.35.3"
-    }
+    ]
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@astrojs/mdx": "^4.3.6",
-    "@astrojs/preact": "^4.1.1",
-    "@astrojs/rss": "^4.0.12",
-    "astro": "^5.14.1",
+    "@astrojs/mdx": "^7.0.7",
+    "@astrojs/preact": "^6.0.4",
+    "@astrojs/rss": "^4.0.19",
+    "astro": "^7.2.4",
     "gray-matter": "^4.0.3",
     "marked": "^15.0.12",
     "preact": "^10.27.2",

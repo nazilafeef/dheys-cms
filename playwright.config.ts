@@ -25,6 +25,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  globalTeardown: './tests/e2e/global-teardown.ts',
   webServer: {
     /*
      * Preview only. The build is a separate step (`pnpm build:e2e`, run by the
@@ -33,8 +34,14 @@ export default defineConfig({
      * Building here races the run: `astro build` empties `dist/` before it refills it, and
      * Playwright starts as soon as the preview answers. Doing it that way produced 26
      * failures against a half-written directory, all of them looking like application bugs.
+     *
+     * The wrapper, rather than `astro preview` directly: Astro 7 daemonises the preview
+     * server, so the command Playwright started exited 0 straight away and the run aborted
+     * with "Process from config.webServer exited early" before a single test. The wrapper
+     * starts the daemon, waits for it to serve, and stays in the foreground so Playwright
+     * still owns the lifetime.
      */
-    command: `pnpm exec astro preview --port ${PORT} --host 127.0.0.1`,
+    command: `node scripts/preview-foreground.mjs --port ${PORT} --host 127.0.0.1 --url http://127.0.0.1:${PORT}${prefix}/`,
     url: `http://127.0.0.1:${PORT}${prefix}/`,
     // Never reuse a server locally either: a preview left over from another run serves a
     // different build, and the failures that produces are extremely misleading.

@@ -1,7 +1,7 @@
 /**
  * Release verification.
  *
- * Builds `release/dheys-cms-v1.0.0.zip` and `.bundle` from HEAD, then proves the artefacts
+ * Builds `release/dheys-cms-v<version>.zip` and `.bundle` from HEAD, then proves the artefacts
  * by running the gate against them rather than against the tree they came from.
  *
  * ── Why this clones the bundle instead of unzipping the zip ─────────────────────────────
@@ -32,12 +32,17 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const VERSION = '1.0.0';
+/*
+ * Read from the manifest rather than written here. A hard-coded version silently keeps
+ * naming the archive after the release before it the moment the package is bumped, and the
+ * mismatch surfaces as a missing file on the releases page rather than as a failure here.
+ */
+const VERSION = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 const RELEASE_DIR = join(ROOT, 'release');
 const ZIP = join(RELEASE_DIR, `dheys-cms-v${VERSION}.zip`);
 const BUNDLE = join(RELEASE_DIR, `dheys-cms-v${VERSION}.bundle`);
